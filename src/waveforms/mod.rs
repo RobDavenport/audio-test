@@ -1,4 +1,5 @@
 pub mod pulse;
+pub mod waveform;
 
 pub const SAMPLE_RATE: usize = 44_100;
 
@@ -12,3 +13,5 @@ pub const NOTE_G: f64 = 783.99;
 pub const NOTE_A2: f64 = 880.00;
 pub const NOTE_B2: f64 = 987.77;
 pub const NOTE_C2: f64 = 1046.50;
+
+// C1 -> B8 = 96 keys

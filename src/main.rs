@@ -1,58 +1,53 @@
 mod waveforms;
 
 use macroquad::prelude::*;
-use waveforms::{pulse::Pulse, *};
+use waveforms::*;
 
-const DUTY: f64 = 0.5;
+use crate::waveforms::waveform::{Envelope as Envelope1, Waveform, WaveformType};
+
+const DUTY: f64 = 0.25;
 
 #[macroquad::main("audio-test")]
 async fn main() {
-    let mut sound = Pulse::new();
-    sound.set_duty(DUTY);
-    sound.set_frequency(NOTE_A);
-    sound.play();
+    let envelope = Envelope1 {
+        attack_time: 0.05,
+        start_amplitude: 1.0,
+        decay_time: 0.25,
+        sustain_amplitude: 0.75,
+        release_time: 0.7,
+    };
 
-    let (stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
-
+    let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
     clear_background(BLACK);
-    stream_handle.play_raw(sound.clone()).unwrap();
 
     println!("Play notes by pressing keys zxcvbnm,./");
 
+    let mut keys = [
+        (KeyCode::Z, NOTE_A),
+        (KeyCode::X, NOTE_B),
+        (KeyCode::C, NOTE_C),
+        (KeyCode::V, NOTE_D),
+        (KeyCode::B, NOTE_E),
+        (KeyCode::N, NOTE_F),
+        (KeyCode::M, NOTE_G),
+        (KeyCode::Comma, NOTE_A2),
+        (KeyCode::Period, NOTE_B2),
+        (KeyCode::Slash, NOTE_C2),
+    ].iter().map(|(code, note)| {
+        let mut sound = Waveform::new(WaveformType::Sine(envelope.clone()));
+        sound.set_frequency(*note);
+        stream_handle.play_raw(sound.clone()).unwrap();
+        (code, sound)
+    }).collect::<Vec<_>>();
+
     loop {
-        if is_key_down(KeyCode::Z) {
-            sound.set_frequency(NOTE_A);
-            sound.play();
-        } else if is_key_down(KeyCode::X) {
-            sound.set_frequency(NOTE_B);
-            sound.play();
-        } else if is_key_down(KeyCode::C) {
-            sound.set_frequency(NOTE_C);
-            sound.play();
-        } else if is_key_down(KeyCode::V) {
-            sound.set_frequency(NOTE_D);
-            sound.play();
-        } else if is_key_down(KeyCode::B) {
-            sound.set_frequency(NOTE_E);
-            sound.play();
-        } else if is_key_down(KeyCode::N) {
-            sound.set_frequency(NOTE_F);
-            sound.play();
-        } else if is_key_down(KeyCode::M) {
-            sound.set_frequency(NOTE_G);
-            sound.play();
-        } else if is_key_down(KeyCode::Comma) {
-            sound.set_frequency(NOTE_A2);
-            sound.play();
-        } else if is_key_down(KeyCode::Period) {
-            sound.set_frequency(NOTE_B2);
-            sound.play();
-        } else if is_key_down(KeyCode::Slash) {
-            sound.set_frequency(NOTE_C2);
-            sound.play();
-        } else {
-            sound.stop();
-        }
+        keys.iter_mut().for_each(|(key, sound)| {
+            if is_key_pressed(**key) {
+                sound.note_on()
+            } else if is_key_released(**key) {
+                sound.note_off()
+            }
+        });
 
         next_frame().await
     }
