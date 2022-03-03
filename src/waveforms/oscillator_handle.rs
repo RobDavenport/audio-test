@@ -33,9 +33,9 @@ impl OscillatorHandle {
         self.oscillator.write().active = active;
     }
 
-    pub fn write_to_buffer(&mut self, data: &mut [f32]) {
+    pub fn write_to_buffer(&mut self, data: &mut [f32], channels: u16) {
         let mut lock = self.oscillator.write();
-        lock.write_to_buffer(data)
+        lock.write_to_buffer(data, channels)
     }
 }
 

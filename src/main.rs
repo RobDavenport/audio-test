@@ -42,7 +42,9 @@ async fn main() {
         .with_max_sample_rate();
 
     let sample_rate = supported_config.sample_rate();
+    let channels = supported_config.channels();
     println!("got sample rate: {:?}", sample_rate);
+
     let config: StreamConfig = supported_config.into();
 
     println!("Play notes by pressing keys zxcvbnm,./");
@@ -92,7 +94,7 @@ async fn main() {
         let stream = device
             .build_output_stream(
                 &config,
-                move |data, _| data_callback(data, handles.as_mut_slice()),
+                move |data, _| data_callback(data, channels, handles.as_mut_slice()),
                 move |err| {
                     println!("err: {}", err);
                 },
@@ -102,7 +104,7 @@ async fn main() {
         stream.play().unwrap();
         loop {
             //TODO: Convert this to await on a channel?
-            std::thread::sleep(std::time::Duration::from_secs_f32(60.0));
+            std::thread::sleep(std::time::Duration::from_secs_f32(6000.0));
         }
     });
 
@@ -146,12 +148,12 @@ async fn main() {
     }
 }
 
-fn data_callback(data: &mut [f32], handles: &mut [OscillatorHandle]) {
+fn data_callback(data: &mut [f32], channels: u16, handles: &mut [OscillatorHandle]) {
     data.iter_mut().for_each(|data| *data = 0.0);
 
     handles.iter_mut().for_each(|handle| {
         if handle.get_active() {
-            handle.write_to_buffer(data)
+            handle.write_to_buffer(data, channels)
         }
     });
 }

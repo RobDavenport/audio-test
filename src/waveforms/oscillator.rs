@@ -153,13 +153,11 @@ fn logarithmic_saw(value: f32) -> f32 {
     (((value % TAU) - PI) / PI).asin() / -FRAC_PI_2
 }
 
-use super::SAMPLE_RATE as SUPER_SAMPLE_RATE;
-
 #[derive(Clone)]
 pub struct Oscillator {
     pub(crate) active: bool,
     sample_rate: u32,
-    pub(crate) frame: u32,
+    clock: u32,
     pub(crate) frequency: f32,
     pub(crate) waveform: Waveform,
 }
@@ -167,7 +165,7 @@ pub struct Oscillator {
 impl Oscillator {
     pub fn new(waveform: Waveform, sample_rate: u32) -> Self {
         Self {
-            frame: 0,
+            clock: 0,
             frequency: 0.0,
             waveform,
             active: false,
@@ -175,10 +173,11 @@ impl Oscillator {
         }
     }
 
-    pub(crate) fn write_to_buffer(&mut self, data: &mut [f32]) {
-        data.into_iter().zip(self).for_each(|(data, sample)| {
-            *data += sample;
-        });
+    //TODO: Potentially add left/right scaling here?
+    pub(crate) fn write_to_buffer(&mut self, data: &mut [f32], channels: u16) {
+        data.chunks_exact_mut(channels as usize)
+            .zip(self)
+            .for_each(|(frame, sample)| frame.iter_mut().for_each(|data| *data += sample))
     }
 }
 
@@ -187,12 +186,10 @@ impl Iterator for Oscillator {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.active {
-            let time = self.frame as Self::Item / self.sample_rate as Self::Item;
-            let output = time * self.frequency * TAU;
+            self.clock +=1;
+            let tone = self.clock as f32 * self.frequency * TAU / self.sample_rate as f32;
 
-            self.frame += 1;
-            let output = self.waveform.func(output);
-            Some(output)
+            Some(self.waveform.func(tone))
         } else {
             None
         }

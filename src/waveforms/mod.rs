@@ -2,9 +2,6 @@ pub mod oscillator;
 pub mod oscillator_handle;
 pub mod waveform;
 
-// or 44_100?
-pub const SAMPLE_RATE: u32 = 48_000;
-
 pub const NOTE_A: f32 = 440.0;
 pub const NOTE_B: f32 = 493.88;
 pub const NOTE_C: f32 = 523.25;
