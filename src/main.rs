@@ -49,7 +49,8 @@ async fn main() {
 
     let config: StreamConfig = supported_config.into();
 
-    println!("Play notes by pressing keys zxcvbnm,./");
+    println!("Change waveform by pressing numbers 0 through 9.");
+    println!("Play notes by pressing keys from Z to M and ,./ lshift.");
 
     let waveforms = [
         (KeyCode::Key1, Waveform::Sine),
@@ -62,8 +63,11 @@ async fn main() {
         (KeyCode::Key8, Waveform::AlternatingSine),
         (KeyCode::Key9, Waveform::CamelSine),
         (KeyCode::Key0, Waveform::LogarithmicSaw),
+        (KeyCode::Minus, Waveform::pulse(0.33)),
+        (KeyCode::Equal, Waveform::pulse(0.10)),
+        (KeyCode::Backspace, Waveform::Noise),
     ]
-    .iter()
+    .into_iter()
     .collect::<Vec<_>>();
 
     let mut handles = Vec::new();
@@ -92,7 +96,7 @@ async fn main() {
     .iter()
     .enumerate()
     .map(|(index, code)| {
-        let sound = Oscillator::new(Waveform::Noise, sample_rate.0);
+        let sound = Oscillator::new(Waveform::Sine, sample_rate.0);
         let sound_handle = OscillatorHandle::new(sound);
         sound_handle.set_frequency(notes.index_to_frequency(index + 35));
         handles.push(sound_handle.clone());
@@ -120,6 +124,8 @@ async fn main() {
         }
     });
 
+    let mut active_waveform = 0;
+
     loop {
         keys.iter_mut().for_each(|(key, handle)| {
             if is_key_pressed(**key) {
@@ -132,7 +138,7 @@ async fn main() {
 
             if oscillator.active {
                 graphs
-                    .entry((oscillator.waveform.clone(), key.clone()))
+                    .entry((active_waveform, key.clone()))
                     .or_insert_with(|| {
                         println!("generating new entry");
                         let mut cloned = oscillator.clone();
@@ -149,13 +155,17 @@ async fn main() {
             }
         });
 
-        waveforms.iter().for_each(|(key, waveform)| {
-            if is_key_pressed(*key) {
-                keys.iter_mut()
-                    .for_each(|(_, handle)| handle.set_waveform(waveform.clone()));
-                println!("Waveform changed: {:?}", waveform);
-            }
-        });
+        waveforms
+            .iter()
+            .enumerate()
+            .for_each(|(index, (key, waveform))| {
+                if is_key_pressed(*key) {
+                    keys.iter_mut()
+                        .for_each(|(_, handle)| handle.set_waveform(waveform.clone()));
+                    println!("Waveform changed: {:?}", waveform);
+                    active_waveform = index;
+                }
+            });
 
         next_frame().await
     }

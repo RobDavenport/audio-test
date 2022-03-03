@@ -6,12 +6,12 @@ use std::f32::consts::{FRAC_PI_2, PI, TAU};
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
 //TODO: Calculate a wave's period? to prevent overlooping
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Waveform {
     // Basics
     Sine,
     Square,
-    //Pulse(f32),
+    Pulse(f32),
     Saw,
     Triangle,
     Noise,
@@ -39,8 +39,7 @@ impl Waveform {
         if duty == 0.5 {
             Self::Square
         } else {
-            todo!()
-            //Self::Pulse(duty)
+            Self::Pulse(duty)
         }
     }
 
@@ -103,7 +102,7 @@ impl Waveform {
     fn func(&self, value: f32) -> f32 {
         match self {
             Self::Sine => value.sin(),
-            //Self::Pulse(duty) => pulse(value, *duty),
+            Self::Pulse(duty) => pulse(value, *duty),
             Self::Square => square(value),
             Self::Saw => ((value % TAU) / PI) - 1.0,
             Self::Triangle => value.sin().asin() / FRAC_PI_2,
@@ -119,7 +118,7 @@ impl Waveform {
 }
 
 fn pulse(value: f32, duty: f32) -> f32 {
-    if value.sin() < duty {
+    if (value.sin() + 1.0) / 2.0 < duty {
         -1.0
     } else {
         1.0
