@@ -14,6 +14,7 @@ pub enum Waveform {
     //Pulse(f32),
     Saw,
     Triangle,
+    Noise,
 
     // OPL
     HalfSine,
@@ -56,6 +57,11 @@ impl Waveform {
     /// Generates a Triangle wave oscilator
     pub fn triangle() -> Self {
         Self::Triangle
+    }
+
+    /// Generates noise.
+    pub fn noise() -> Self {
+        Self::Noise
     }
 
     /// Generates a Half Sine wave oscilator. Produces
@@ -101,6 +107,7 @@ impl Waveform {
             Self::Square => square(value),
             Self::Saw => ((value % TAU) / PI) - 1.0,
             Self::Triangle => value.sin().asin() / FRAC_PI_2,
+            Self::Noise => fastrand::f32(),
             Self::HalfSine => half_sine(value),
             Self::AbsoluteSine => (value / 2.0).sin().abs(),
             Self::QuarterSine => quarter_sine(value / 2.0),
@@ -186,7 +193,7 @@ impl Iterator for Oscillator {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.active {
-            self.clock +=1;
+            self.clock += 1;
             let tone = self.clock as f32 * self.frequency * TAU / self.sample_rate as f32;
 
             Some(self.waveform.func(tone))

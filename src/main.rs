@@ -80,7 +80,7 @@ async fn main() {
     ]
     .iter()
     .map(|(code, note)| {
-        let sound = Oscillator::new(Waveform::Sine, sample_rate.0);
+        let sound = Oscillator::new(Waveform::Noise, sample_rate.0);
         let sound_handle = OscillatorHandle::new(sound);
         sound_handle.set_frequency(*note);
         handles.push(sound_handle.clone());

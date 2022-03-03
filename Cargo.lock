@@ -41,6 +41,7 @@ name = "audio-test"
 version = "0.1.0"
 dependencies = [
  "cpal",
+ "fastrand",
  "fundsp",
  "macroquad",
  "parking_lot 0.12.0",
@@ -260,6 +261,15 @@ checksum = "73770f8e1fe7d64df17ca66ad28994a0a623ea497fa69486e14984e715c5d174"
 dependencies = [
  "adler32",
  "byteorder",
+]
+
+[[package]]
+name = "fastrand"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3fcf0cee53519c866c09b5de1f6c56ff9d647101f81c1964fa632e148896cdf"
+dependencies = [
+ "instant",
 ]
 
 [[package]]
