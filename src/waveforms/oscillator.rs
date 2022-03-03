@@ -6,7 +6,7 @@ use std::f32::consts::{FRAC_PI_2, PI, TAU};
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
 //TODO: Calculate a wave's period? to prevent overlooping
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Waveform {
     // Basics
     Sine,
@@ -164,7 +164,7 @@ fn logarithmic_saw(value: f32) -> f32 {
 pub struct Oscillator {
     pub(crate) active: bool,
     sample_rate: u32,
-    clock: u32,
+    pub(crate) clock: u32,
     pub(crate) frequency: f32,
     pub(crate) waveform: Waveform,
 }

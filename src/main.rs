@@ -1,6 +1,6 @@
 mod waveforms;
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -26,6 +26,8 @@ async fn main() {
     //     sustain_amplitude: 0.75,
     //     release_time: 0.7,
     // };
+
+    let notes = notes::Notes::generate();
 
     //let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
 
@@ -67,30 +69,40 @@ async fn main() {
     let mut handles = Vec::new();
 
     let mut keys = [
-        (KeyCode::Z, NOTE_A),
-        (KeyCode::X, NOTE_B),
-        (KeyCode::C, NOTE_C),
-        (KeyCode::V, NOTE_D),
-        (KeyCode::B, NOTE_E),
-        (KeyCode::N, NOTE_F),
-        (KeyCode::M, NOTE_G),
-        (KeyCode::Comma, NOTE_A2),
-        (KeyCode::Period, NOTE_B2),
-        (KeyCode::Slash, NOTE_C2),
+        (KeyCode::LeftShift),
+        (KeyCode::Z),
+        (KeyCode::S),
+        (KeyCode::X),
+        (KeyCode::D),
+        (KeyCode::C),
+        (KeyCode::V),
+        (KeyCode::G),
+        (KeyCode::B),
+        (KeyCode::H),
+        (KeyCode::N),
+        (KeyCode::J),
+        (KeyCode::M),
+        (KeyCode::Comma),
+        (KeyCode::L),
+        (KeyCode::Period),
+        (KeyCode::Semicolon),
+        (KeyCode::Slash),
+        (KeyCode::Apostrophe),
     ]
     .iter()
-    .map(|(code, note)| {
+    .enumerate()
+    .map(|(index, code)| {
         let sound = Oscillator::new(Waveform::Noise, sample_rate.0);
         let sound_handle = OscillatorHandle::new(sound);
-        sound_handle.set_frequency(*note);
+        sound_handle.set_frequency(notes.index_to_frequency(index + 35));
         handles.push(sound_handle.clone());
         (code, sound_handle)
     })
     .collect::<Vec<_>>();
 
-    //let mut graphs = HashMap::new();
+    let mut graphs = HashMap::new();
 
-    let sound_thread = std::thread::spawn(move || {
+    let _sound_thread = std::thread::spawn(move || {
         let stream = device
             .build_output_stream(
                 &config,
@@ -116,31 +128,32 @@ async fn main() {
                 handle.set_active(false);
             }
 
-            // let oscillator = handle.oscillator.read();
+            let oscillator = handle.oscillator.read();
 
-            // if oscillator.active {
-            //     graphs
-            //         .entry((oscillator.waveform.clone(), key.clone()))
-            //         .or_insert_with(|| {
-            //             println!("generating new entry");
-            //             let mut cloned = oscillator.clone();
-            //             cloned.frame = 0;
-            //             cloned
-            //                 .into_iter()
-            //                 .take((screen_width() * 2.0) as usize)
-            //                 .enumerate()
-            //                 .map(|(x, y)| (x as f32 * 0.5, (screen_height() / 2.0) - (y * 20.0)))
-            //                 .collect::<Vec<_>>()
-            //         })
-            //         .iter()
-            //         .for_each(|(x, y)| draw_circle(*x, *y, 0.5, GREEN));
-            // }
+            if oscillator.active {
+                graphs
+                    .entry((oscillator.waveform.clone(), key.clone()))
+                    .or_insert_with(|| {
+                        println!("generating new entry");
+                        let mut cloned = oscillator.clone();
+                        cloned.clock = 0;
+                        cloned
+                            .into_iter()
+                            .take((screen_width() * 2.0) as usize)
+                            .enumerate()
+                            .map(|(x, y)| (x as f32 * 0.5, (screen_height() / 2.0) - (y * 20.0)))
+                            .collect::<Vec<_>>()
+                    })
+                    .iter()
+                    .for_each(|(x, y)| draw_circle(*x, *y, 0.5, GREEN));
+            }
         });
 
         waveforms.iter().for_each(|(key, waveform)| {
             if is_key_pressed(*key) {
                 keys.iter_mut()
                     .for_each(|(_, handle)| handle.set_waveform(waveform.clone()));
+                println!("Waveform changed: {:?}", waveform);
             }
         });
 
