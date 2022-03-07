@@ -23,6 +23,9 @@ pub enum Waveform {
     AlternatingSine,
     CamelSine,
     LogarithmicSaw,
+
+    // Other
+    PitchedNoise(u32),
 }
 
 impl Waveform {
@@ -99,7 +102,7 @@ impl Waveform {
         Self::LogarithmicSaw
     }
 
-    fn func(&self, value: f32) -> f32 {
+    fn func(&mut self, value: f32) -> f32 {
         match self {
             Self::Sine => value.sin(),
             Self::Pulse(duty) => pulse(value, *duty),
@@ -113,6 +116,7 @@ impl Waveform {
             Self::AlternatingSine => alternating_sine(value),
             Self::CamelSine => camel_sine(value),
             Self::LogarithmicSaw => logarithmic_saw(value),
+            Self::PitchedNoise(state) => todo!(),
         }
     }
 }

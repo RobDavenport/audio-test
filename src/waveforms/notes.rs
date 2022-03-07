@@ -5,7 +5,6 @@ const NAMES: [&str; 12] = [
     "C ", "C# ", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B ",
 ];
 const ROOT_NOTE_FREQ: f64 = 440.0;
-const ROOT_NOTE_NAME: usize = 9;
 
 #[derive(Clone)]
 pub struct Notes {
