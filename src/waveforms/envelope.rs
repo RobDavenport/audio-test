@@ -4,8 +4,8 @@ pub struct Envelope {
     decay: u8,
     release: u8,
 
-    attack_amplitude: f32,
-    sustain_amplitude: f32,
+    attack_amplitude: u8,
+    sustain_amplitude: u8,
 }
 
 impl Envelope {}
