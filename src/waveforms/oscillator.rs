@@ -28,6 +28,12 @@ pub enum Waveform {
     PitchedNoise(u32),
 }
 
+impl Default for Waveform {
+    fn default() -> Self {
+        Self::Sine
+    }
+}
+
 impl Waveform {
     /// Generates a Sine wave oscilator
     pub fn sine() -> Self {
@@ -102,7 +108,7 @@ impl Waveform {
         Self::LogarithmicSaw
     }
 
-    fn func(&mut self, value: f32) -> f32 {
+    pub fn func(&mut self, value: f32) -> f32 {
         match self {
             Self::Sine => value.sin(),
             Self::Pulse(duty) => pulse(value, *duty),

@@ -12,7 +12,7 @@ use waveforms::*;
 use crate::waveforms::{
     oscillator::{Oscillator, Waveform},
     oscillator_handle::OscillatorHandle,
-    //waveform::{Envelope as Envelope1, WaveformType},
+    patch::{Patch, PatchHandle},
 };
 
 const DUTY: f64 = 0.25;
@@ -96,8 +96,10 @@ async fn main() {
     .iter()
     .enumerate()
     .map(|(index, code)| {
-        let sound = Oscillator::new(Waveform::Sine, sample_rate.0);
-        let sound_handle = OscillatorHandle::new(sound);
+        //let sound = Oscillator::new(Waveform::Sine, sample_rate.0);
+        //let sound_handle = OscillatorHandle::new(sound);
+        let sound = Patch::new(0.0, sample_rate.0);
+        let sound_handle = PatchHandle::new(sound);
         sound_handle.set_frequency(notes.index_to_frequency(index + 35));
         handles.push(sound_handle.clone());
         (code, sound_handle)
