@@ -1,4 +1,7 @@
-use std::{f32::consts::TAU, sync::Arc};
+use std::{
+    f32::consts::{PI, TAU},
+    sync::Arc,
+};
 
 use parking_lot::RwLock;
 
@@ -6,6 +9,7 @@ use super::oscillator::Waveform;
 
 const AMPLIFICATION: f32 = 25.0;
 const ENV_DB: f32 = 96.0;
+//const ENV_DB: f32 = 64.0;
 
 #[derive(Clone)]
 pub struct PatchHandle {
@@ -26,10 +30,6 @@ impl PatchHandle {
         self.patch.write().base_frequency = frequency
     }
 
-    pub fn set_waveform(&self, operator_index: usize, waveform: Waveform) {
-        self.patch.write().operators[operator_index].waveform = waveform;
-    }
-
     pub fn set_active(&self, active: bool) {
         self.patch.write().active = active;
     }
@@ -42,6 +42,7 @@ impl PatchHandle {
 
 #[derive(Clone)]
 pub enum FrequencyMultiplier {
+    OneSixteenth,
     OneEigth,
     OneFourth,
     OneHalf,
@@ -55,11 +56,14 @@ pub enum FrequencyMultiplier {
     Eight,
     Nine,
     Ten,
+    Eleven,
+    Twelve,
 }
 
 impl FrequencyMultiplier {
     fn multiply(&self, frequency: f32) -> f32 {
         match self {
+            FrequencyMultiplier::OneSixteenth => frequency / 16.0,
             FrequencyMultiplier::OneEigth => frequency / 8.0,
             FrequencyMultiplier::OneFourth => frequency / 4.0,
             FrequencyMultiplier::OneHalf => frequency / 2.0,
@@ -73,6 +77,57 @@ impl FrequencyMultiplier {
             FrequencyMultiplier::Eight => frequency * 8.0,
             FrequencyMultiplier::Nine => frequency * 9.0,
             FrequencyMultiplier::Ten => frequency * 10.0,
+            FrequencyMultiplier::Eleven => frequency * 11.0,
+            FrequencyMultiplier::Twelve => frequency * 12.0,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum FeedbackLevel {
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Eleven,
+    Twelve,
+    Thirteen,
+    Fourteen,
+    Fifteen,
+}
+
+impl Default for FeedbackLevel {
+    fn default() -> Self {
+        Self::Zero
+    }
+}
+
+impl FeedbackLevel {
+    pub fn as_multiplier(&self) -> f32 {
+        match self {
+            FeedbackLevel::Zero => 0.0,
+            FeedbackLevel::One => PI / 128.0,
+            FeedbackLevel::Two => PI / 64.0,
+            FeedbackLevel::Three => PI / 32.0,
+            FeedbackLevel::Four => PI / 16.0,
+            FeedbackLevel::Five => PI / 8.0,
+            FeedbackLevel::Six => PI / 4.0,
+            FeedbackLevel::Seven => PI / 2.0,
+            FeedbackLevel::Eight => PI,
+            FeedbackLevel::Nine => PI * 2.0,
+            FeedbackLevel::Ten => PI * 4.0,
+            FeedbackLevel::Eleven => PI * 8.0,
+            FeedbackLevel::Twelve => PI * 16.0,
+            FeedbackLevel::Thirteen => PI * 32.0,
+            FeedbackLevel::Fourteen => PI * 64.0,
+            FeedbackLevel::Fifteen => PI * 128.0,
         }
     }
 }
@@ -131,7 +186,9 @@ pub struct Patch {
     pub(crate) base_frequency: f32,
     operators: [Operator; 4],
     algorithm: Algorithm,
-    feedback: u8,
+    prev_feedback1: f32,
+    prev_feedback2: f32,
+    feedback: FeedbackLevel,
 }
 
 impl Patch {
@@ -141,22 +198,24 @@ impl Patch {
             sample_rate,
             clock: 0,
             base_frequency,
+            prev_feedback1: 0.0,
+            prev_feedback2: 0.0,
             operators: [
                 Operator {
                     waveform: Waveform::Sine,
                     max_level: 0,
-                    frequency_multiplier: FrequencyMultiplier::OneEigth,
-                    detune: 0,
-                },
-                Operator {
-                    waveform: Waveform::Sine,
-                    max_level: 186,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 200,
+                    max_level: 0,
+                    frequency_multiplier: FrequencyMultiplier::Two,
+                    detune: 0,
+                },
+                Operator {
+                    waveform: Waveform::Sine,
+                    max_level: 190,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
                 },
@@ -167,24 +226,40 @@ impl Patch {
                     detune: 0,
                 },
             ],
-            algorithm: Algorithm::default(),
-            feedback: 0,
+            algorithm: Algorithm::One,
+            feedback: FeedbackLevel::Four,
         }
     }
 
-    fn func(&self, base_tone: f32) -> f32 {
+    fn func(&mut self, base_tone: f32) -> f32 {
         // 1st operator is always feedback
-        if self.feedback > 0 {
+        let feedback_average = (self.prev_feedback1 + self.prev_feedback2) / 2.0;
+        let op_1 =
+            self.operators[0].func(feedback_average * self.feedback.as_multiplier(), base_tone);
+
+        let output = if self.algorithm == Algorithm::One {
+            self.operators
+                .iter()
+                .skip(1)
+                .fold(op_1, |accumulator, operator| {
+                    operator.func(accumulator, base_tone)
+                })
+                / AMPLIFICATION
+        } else if self.algorithm == Algorithm::Eight {
+            self.operators
+                .iter()
+                .skip(1)
+                .fold(op_1, |accumulator, operator| {
+                    accumulator + operator.func(0.0, base_tone)
+                })
+                / AMPLIFICATION
+        } else {
             unimplemented!()
         };
 
-        if self.algorithm != Algorithm::One {
-            unimplemented!()
-        };
-
-        self.operators.iter().fold(0.0, |accumulator, operator| {
-            operator.func(accumulator, base_tone)
-        }) / AMPLIFICATION
+        self.prev_feedback2 = self.prev_feedback1;
+        self.prev_feedback1 = output;
+        output
     }
 
     //TODO: Potentially add left/right scaling here?

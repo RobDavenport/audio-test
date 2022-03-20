@@ -153,9 +153,9 @@ async fn main() {
             let mid_screen = screen_height() / 2.0;
             draw_line(
                 index as f32,
-                mid_screen + read[index] * 20.0,
+                mid_screen - read[index] * 20.0,
                 index as f32 + 0.5,
-                mid_screen + read[index + 1] * 20.0,
+                mid_screen - read[index + 1] * 20.0,
                 1.0,
                 GREEN,
             )
