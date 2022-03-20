@@ -1,5 +1,7 @@
 mod waveforms;
 
+use std::{collections::VecDeque, sync::Arc};
+
 use hashbrown::HashMap;
 
 use cpal::{
@@ -7,6 +9,7 @@ use cpal::{
     SampleRate, StreamConfig,
 };
 use macroquad::prelude::*;
+use parking_lot::RwLock;
 use waveforms::*;
 
 use crate::waveforms::{
@@ -106,13 +109,21 @@ async fn main() {
     })
     .collect::<Vec<_>>();
 
-    let mut graphs = HashMap::new();
+    let graph = (0..screen_width() as usize * 2)
+        .map(|_| 0.0f32)
+        .collect::<VecDeque<f32>>();
+
+    let graph = Arc::new(RwLock::new(graph));
+    let graph_clone = graph.clone();
 
     let _sound_thread = std::thread::spawn(move || {
         let stream = device
             .build_output_stream(
                 &config,
-                move |data, _| data_callback(data, channels, handles.as_mut_slice()),
+                move |data, _| {
+                    let graph = graph_clone.clone();
+                    data_callback(data, channels, handles.as_mut_slice(), graph)
+                },
                 move |err| {
                     println!("err: {}", err);
                 },
@@ -135,27 +146,21 @@ async fn main() {
             } else if is_key_released(**key) {
                 handle.set_active(false);
             }
-
-            let oscillator = handle.patch.read();
-
-            if oscillator.active {
-                graphs
-                    .entry((active_waveform, key.clone()))
-                    .or_insert_with(|| {
-                        println!("generating new entry");
-                        let mut cloned = oscillator.clone();
-                        cloned.clock = 0;
-                        cloned
-                            .into_iter()
-                            .take((screen_width() * 2.0) as usize)
-                            .enumerate()
-                            .map(|(x, y)| (x as f32 * 0.5, (screen_height() / 2.0) - (y * 20.0)))
-                            .collect::<Vec<_>>()
-                    })
-                    .iter()
-                    .for_each(|(x, y)| draw_circle(*x, *y, 0.5, GREEN));
-            }
         });
+
+        let read = graph.read();
+        (0..read.len() - 1).for_each(|index| {
+            let mid_screen = screen_height() / 2.0;
+            draw_line(
+                index as f32,
+                mid_screen + read[index] * 20.0,
+                index as f32 + 0.5,
+                mid_screen + read[index + 1] * 20.0,
+                1.0,
+                GREEN,
+            )
+        });
+        drop(read);
 
         // waveforms
         //     .iter()
@@ -183,7 +188,12 @@ async fn main() {
 //     });
 // }
 
-fn data_callback(data: &mut [f32], channels: u16, handles: &mut [PatchHandle]) {
+fn data_callback(
+    data: &mut [f32],
+    channels: u16,
+    handles: &mut [PatchHandle],
+    graph: Arc<RwLock<VecDeque<f32>>>,
+) {
     data.iter_mut().for_each(|data| *data = 0.0);
 
     handles.iter_mut().for_each(|handle| {
@@ -191,4 +201,9 @@ fn data_callback(data: &mut [f32], channels: u16, handles: &mut [PatchHandle]) {
             handle.write_to_buffer(data, channels)
         }
     });
+    let mut graph = graph.write();
+    graph.drain(0..data.len() / channels as usize);
+    data.iter()
+        .step_by(2)
+        .for_each(|amplitude| graph.push_back(*amplitude));
 }
