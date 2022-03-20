@@ -2,7 +2,6 @@ TODO:
 1. Envelope
 1. Save "instruments" ? Combination of patches
     - Done via UI?
-1. Algorithms
 1. Sequencer?
 1. Effects
 1. "Noise" frequency using LFSR and pre-defined periods/freqs?

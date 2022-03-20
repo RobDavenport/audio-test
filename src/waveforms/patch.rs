@@ -11,6 +11,8 @@ const AMPLIFICATION: f32 = 25.0;
 const ENV_DB: f32 = 96.0;
 //const ENV_DB: f32 = 64.0;
 
+const OPERATOR_COUNT: usize = 4;
+
 #[derive(Clone)]
 pub struct PatchHandle {
     pub patch: Arc<RwLock<Patch>>,
@@ -28,6 +30,10 @@ impl PatchHandle {
 
     pub fn set_frequency(&self, frequency: f32) {
         self.patch.write().base_frequency = frequency
+    }
+
+    pub fn set_algorithm(&self, algorithm: Algorithm) {
+        self.patch.write().algorithm = algorithm
     }
 
     pub fn set_active(&self, active: bool) {
@@ -151,7 +157,6 @@ impl Operator {
         self.waveform
             .func(modulation + self.frequency_multiplier.multiply(tone))
             * self.attenuation()
-            * AMPLIFICATION
     }
 
     fn attenuation(&self) -> f32 {
@@ -160,8 +165,9 @@ impl Operator {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Algorithm {
+    Zero,
     One,
     Two,
     Three,
@@ -169,7 +175,97 @@ pub enum Algorithm {
     Five,
     Six,
     Seven,
-    Eight,
+}
+
+pub struct AlgorithmDefinition {
+    carriers: [bool; OPERATOR_COUNT],
+    modulators: [ModulatedBy; OPERATOR_COUNT],
+}
+
+pub enum ModulatedBy {
+    None,
+    Feedback,
+    Single(usize),
+    Double(usize, usize),
+}
+
+impl Algorithm {
+    pub fn get_definition(&self) -> &'static AlgorithmDefinition {
+        match self {
+            Algorithm::Zero => &AlgorithmDefinition {
+                carriers: [false, false, false, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::Single(0),
+                    ModulatedBy::Single(1),
+                    ModulatedBy::Single(2),
+                ],
+            },
+            Algorithm::One => &AlgorithmDefinition {
+                carriers: [false, false, false, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::None,
+                    ModulatedBy::Double(0, 1),
+                    ModulatedBy::Single(2),
+                ],
+            },
+            Algorithm::Two => &AlgorithmDefinition {
+                carriers: [false, false, false, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::None,
+                    ModulatedBy::Single(1),
+                    ModulatedBy::Single(2),
+                ],
+            },
+            Algorithm::Three => &AlgorithmDefinition {
+                carriers: [false, false, false, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::Single(0),
+                    ModulatedBy::None,
+                    ModulatedBy::Double(1, 2),
+                ],
+            },
+            Algorithm::Four => &AlgorithmDefinition {
+                carriers: [false, true, false, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::Single(0),
+                    ModulatedBy::None,
+                    ModulatedBy::Single(3),
+                ],
+            },
+            Algorithm::Five => &AlgorithmDefinition {
+                carriers: [false, true, true, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::Single(0),
+                    ModulatedBy::Single(0),
+                    ModulatedBy::Single(0),
+                ],
+            },
+            Algorithm::Six => &AlgorithmDefinition {
+                carriers: [false, true, true, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::Single(0),
+                    ModulatedBy::None,
+                    ModulatedBy::None,
+                ],
+            },
+            Algorithm::Seven => &AlgorithmDefinition {
+                carriers: [true, true, true, true],
+                modulators: [
+                    ModulatedBy::Feedback,
+                    ModulatedBy::None,
+                    ModulatedBy::None,
+                    ModulatedBy::None,
+                ],
+            },
+        }
+    }
 }
 
 impl Default for Algorithm {
@@ -203,19 +299,19 @@ impl Patch {
             operators: [
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 0,
+                    max_level: 255,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
                 },
                 Operator {
                     waveform: Waveform::Sine,
                     max_level: 0,
-                    frequency_multiplier: FrequencyMultiplier::Two,
+                    frequency_multiplier: FrequencyMultiplier::OneHalf,
                     detune: 0,
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 190,
+                    max_level: 200,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
                 },
@@ -226,40 +322,47 @@ impl Patch {
                     detune: 0,
                 },
             ],
-            algorithm: Algorithm::One,
-            feedback: FeedbackLevel::Four,
+            algorithm: Algorithm::Seven,
+            feedback: FeedbackLevel::Seven,
         }
     }
 
     fn func(&mut self, base_tone: f32) -> f32 {
         // 1st operator is always feedback
-        let feedback_average = (self.prev_feedback1 + self.prev_feedback2) / 2.0;
-        let op_1 =
-            self.operators[0].func(feedback_average * self.feedback.as_multiplier(), base_tone);
+        let mut outputs = [0.0f32; 4];
+        let mut final_output = 0.0f32;
 
-        let output = if self.algorithm == Algorithm::One {
-            self.operators
-                .iter()
-                .skip(1)
-                .fold(op_1, |accumulator, operator| {
-                    operator.func(accumulator, base_tone)
-                })
-                / AMPLIFICATION
-        } else if self.algorithm == Algorithm::Eight {
-            self.operators
-                .iter()
-                .skip(1)
-                .fold(op_1, |accumulator, operator| {
-                    accumulator + operator.func(0.0, base_tone)
-                })
-                / AMPLIFICATION
-        } else {
-            unimplemented!()
-        };
+        let algorithm = self.algorithm.get_definition();
+
+        (0..OPERATOR_COUNT).for_each(|i| {
+            let result = match algorithm.modulators[i] {
+                ModulatedBy::None => self.operators[i].func(0.0, base_tone),
+                ModulatedBy::Feedback => self.operators[i].func(
+                    ((self.prev_feedback1 + self.prev_feedback2) / 2.0)
+                        * self.feedback.as_multiplier(),
+                    base_tone,
+                ),
+                ModulatedBy::Single(modulator) => {
+                    self.operators[i].func(outputs[modulator], base_tone)
+                }
+                ModulatedBy::Double(first, second) => {
+                    self.operators[i].func(outputs[first] + outputs[second], base_tone)
+                }
+            };
+
+            let result = result * AMPLIFICATION;
+
+            outputs[i] = result;
+
+            if algorithm.carriers[i] == true {
+                final_output += result;
+            }
+        });
 
         self.prev_feedback2 = self.prev_feedback1;
-        self.prev_feedback1 = output;
-        output
+        let final_output = final_output / AMPLIFICATION;
+        self.prev_feedback1 = final_output;
+        final_output
     }
 
     //TODO: Potentially add left/right scaling here?
