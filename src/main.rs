@@ -136,7 +136,7 @@ async fn main() {
                 handle.set_active(false);
             }
 
-            let oscillator = handle.oscillator.read();
+            let oscillator = handle.patch.read();
 
             if oscillator.active {
                 graphs
@@ -157,23 +157,33 @@ async fn main() {
             }
         });
 
-        waveforms
-            .iter()
-            .enumerate()
-            .for_each(|(index, (key, waveform))| {
-                if is_key_pressed(*key) {
-                    keys.iter_mut()
-                        .for_each(|(_, handle)| handle.set_waveform(waveform.clone()));
-                    println!("Waveform changed: {:?}", waveform);
-                    active_waveform = index;
-                }
-            });
+        // waveforms
+        //     .iter()
+        //     .enumerate()
+        //     .for_each(|(index, (key, waveform))| {
+        //         if is_key_pressed(*key) {
+        //             keys.iter_mut()
+        //                 .for_each(|(_, handle)| handle.set_waveform(waveform.clone()));
+        //             println!("Waveform changed: {:?}", waveform);
+        //             active_waveform = index;
+        //         }
+        //     });
 
         next_frame().await
     }
 }
 
-fn data_callback(data: &mut [f32], channels: u16, handles: &mut [OscillatorHandle]) {
+// fn data_callback(data: &mut [f32], channels: u16, handles: &mut [OscillatorHandle]) {
+//     data.iter_mut().for_each(|data| *data = 0.0);
+
+//     handles.iter_mut().for_each(|handle| {
+//         if handle.get_active() {
+//             handle.write_to_buffer(data, channels)
+//         }
+//     });
+// }
+
+fn data_callback(data: &mut [f32], channels: u16, handles: &mut [PatchHandle]) {
     data.iter_mut().for_each(|data| *data = 0.0);
 
     handles.iter_mut().for_each(|handle| {
