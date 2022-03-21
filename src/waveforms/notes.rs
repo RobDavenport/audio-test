@@ -2,7 +2,7 @@ use std::{collections::VecDeque, sync::Arc};
 
 const START_OCTAVE: usize = 4;
 const NAMES: [&str; 12] = [
-    "C ", "C# ", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B ",
+    "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B ",
 ];
 const ROOT_NOTE_FREQ: f64 = 440.0;
 

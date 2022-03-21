@@ -21,3 +21,6 @@ ym2612 feedbacks:
 5 = PI
 6 = 2 *PI
 7 = 4 * PI
+
+consider fast sin function as described:
+https://www.youtube.com/watch?v=1xlCVBIF_ig

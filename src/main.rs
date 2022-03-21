@@ -226,6 +226,7 @@ fn data_callback(
             handle.write_to_buffer(data, channels)
         }
     });
+
     let mut graph = graph.write();
     graph.drain(0..data.len() / channels as usize);
     data.iter()
