@@ -1,7 +1,5 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
-// use rodio::Source;
-
 //TODO: Build a lookup table instead of Sin each thing?
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
 //TODO: Calculate a wave's period? to prevent overlooping
@@ -166,47 +164,4 @@ fn camel_sine(value: f32) -> f32 {
 
 fn logarithmic_saw(value: f32) -> f32 {
     (((value % TAU) - PI) / PI).asin() / -FRAC_PI_2
-}
-
-#[derive(Clone)]
-pub struct Oscillator {
-    pub(crate) active: bool,
-    sample_rate: u32,
-    pub(crate) clock: u32,
-    pub(crate) frequency: f32,
-    pub(crate) waveform: Waveform,
-}
-
-impl Oscillator {
-    pub fn new(waveform: Waveform, sample_rate: u32) -> Self {
-        Self {
-            clock: 0,
-            frequency: 0.0,
-            waveform,
-            active: false,
-            sample_rate,
-        }
-    }
-
-    //TODO: Potentially add left/right scaling here?
-    pub(crate) fn write_to_buffer(&mut self, data: &mut [f32], channels: u16) {
-        data.chunks_exact_mut(channels as usize)
-            .zip(self)
-            .for_each(|(frame, sample)| frame.iter_mut().for_each(|data| *data += sample))
-    }
-}
-
-impl Iterator for Oscillator {
-    type Item = f32;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.active {
-            self.clock += 1;
-            let tone = self.clock as f32 * self.frequency * TAU / self.sample_rate as f32;
-
-            Some(self.waveform.func(tone))
-        } else {
-            None
-        }
-    }
 }

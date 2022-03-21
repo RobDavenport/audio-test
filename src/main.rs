@@ -1,8 +1,8 @@
-mod waveforms;
+mod notes;
+mod patches;
+mod waveform;
 
 use std::{collections::VecDeque, sync::Arc};
-
-use hashbrown::HashMap;
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -11,25 +11,21 @@ use cpal::{
 use macroquad::prelude::*;
 use parking_lot::RwLock;
 
-use crate::waveforms::{
-    notes::Notes,
-    oscillator::{Oscillator, Waveform},
-    oscillator_handle::OscillatorHandle,
-    patch::{Algorithm, Patch, PatchHandle},
-};
+use crate::notes::Notes;
+use crate::patches::{Algorithm, Patch, PatchHandle};
+
+pub use waveform::Waveform;
 
 const DUTY: f64 = 0.25;
+//pub const TARGET_SAMPLE_RATE: usize = 96_000;
+pub const TARGET_SAMPLE_RATE: usize = 48_000; //48khz
+                                              //pub const TARGET_SAMPLE_RATE: usize = 44_100; //44.1 kHz
+                                              //pub const TARGET_SAMPLE_RATE: usize = 22_050; //22.050 khz
+                                              //pub const TARGET_SAMPLE_RATE: usize = 11_025; //22.050 khz
+pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
 
 #[macroquad::main("audio-test")]
 async fn main() {
-    // let envelope = Envelope1 {
-    //     attack_time: 0.05,
-    //     start_amplitude: 1.0,
-    //     decay_time: 0.25,
-    //     sustain_amplitude: 0.75,
-    //     release_time: 0.7,
-    // };
-
     let notes = Notes::generate();
 
     //let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
@@ -112,8 +108,6 @@ async fn main() {
     .iter()
     .enumerate()
     .map(|(index, code)| {
-        //let sound = Oscillator::new(Waveform::Sine, sample_rate.0);
-        //let sound_handle = OscillatorHandle::new(sound);
         let sound = Patch::new(0.0, sample_rate.0);
         let sound_handle = PatchHandle::new(sound);
         sound_handle.set_frequency(notes.index_to_frequency(index + 35));
@@ -219,6 +213,7 @@ fn data_callback(
     handles: &mut [PatchHandle],
     graph: Arc<RwLock<VecDeque<f32>>>,
 ) {
+    // Set all channels to silence
     data.iter_mut().for_each(|data| *data = 0.0);
 
     handles.iter_mut().for_each(|handle| {
@@ -227,6 +222,7 @@ fn data_callback(
         }
     });
 
+    // Update the oscilliscope
     let mut graph = graph.write();
     graph.drain(0..data.len() / channels as usize);
     data.iter()
