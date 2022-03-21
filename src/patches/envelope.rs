@@ -1,4 +1,4 @@
-use crate::patches::{attenuation_u16, attenuation_u8};
+use super::{attenuation_table_u10, attenuation_table_u8, ATTENUATION_MAX};
 
 const SLOWEST_ATTENUATION_TICK_COUNT: u8 = 11; // Number of shifts
 const HIGHEST_ATTENUATION_RATE: u16 = u8::MAX as u16 * 2;
@@ -31,7 +31,7 @@ impl Default for Envelope {
             decay_sustain_rate: 0,
             release_rate: 0,
 
-            current_attenuation: u16::MAX,
+            current_attenuation: ATTENUATION_MAX,
             attenuation_rate: 0,
             current_phase: EnvelopePhase::Release,
             clock: 0,
@@ -69,7 +69,8 @@ impl Envelope {
     }
 
     pub fn attenuation(&self) -> f32 {
-        attenuation_u16(self.current_attenuation) * attenuation_u8(u8::MAX - self.total_level)
+        attenuation_table_u10(self.current_attenuation)
+            * attenuation_table_u8(u8::MAX - self.total_level)
     }
 
     pub fn key_on(&mut self) {
@@ -129,7 +130,9 @@ impl Envelope {
         }
         self.clock -= 1 << self.cycles_per_attenuation_tick;
 
-        if self.current_phase != EnvelopePhase::Attack && self.current_attenuation == u16::MAX {
+        if self.current_phase != EnvelopePhase::Attack
+            && self.current_attenuation >= ATTENUATION_MAX
+        {
             return;
         } else {
             // if self.total_level != 0 {
@@ -138,27 +141,21 @@ impl Envelope {
 
             match self.current_phase {
                 EnvelopePhase::Attack => {
-                    self.current_attenuation = self
-                        .current_attenuation
-                        .saturating_sub(self.attenuation_rate as u16);
+                    self.current_attenuation -= 1 * ((self.current_attenuation) / 16) + 1;
 
                     if self.current_attenuation == 0 {
                         self.next_phase();
                     }
                 }
                 EnvelopePhase::Decay => {
-                    self.current_attenuation = self
-                        .current_attenuation
-                        .saturating_add(self.attenuation_rate as u16);
+                    self.current_attenuation += 1;
 
                     if self.current_attenuation >= self.sustain_level as u16 {
                         self.next_phase();
                     }
                 }
                 EnvelopePhase::Sustain | EnvelopePhase::Release => {
-                    self.current_attenuation = self
-                        .current_attenuation
-                        .saturating_add(self.attenuation_rate as u16);
+                    self.current_attenuation += 1;
                 }
             }
         }

@@ -32,6 +32,8 @@ pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
 async fn main() {
     let notes = Notes::generate();
 
+    patches::init_attenuation_table();
+
     //let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
 
     let host = cpal::default_host();
@@ -151,6 +153,8 @@ async fn main() {
     let mut active_waveform = 0;
 
     loop {
+        let screen_height = screen_height();
+
         keys.iter_mut().for_each(|(key, handle)| {
             if is_key_pressed(**key) {
                 handle.set_active(true);
@@ -161,7 +165,7 @@ async fn main() {
 
         let read = graph.read();
         (0..read.len() - 1).for_each(|index| {
-            let mid_screen = screen_height() / 2.0;
+            let mid_screen = screen_height / 2.0;
             draw_line(
                 index as f32,
                 mid_screen - read[index] * 20.0,
@@ -200,16 +204,6 @@ async fn main() {
         next_frame().await
     }
 }
-
-// fn data_callback(data: &mut [f32], channels: u16, handles: &mut [OscillatorHandle]) {
-//     data.iter_mut().for_each(|data| *data = 0.0);
-
-//     handles.iter_mut().for_each(|handle| {
-//         if handle.get_active() {
-//             handle.write_to_buffer(data, channels)
-//         }
-//     });
-// }
 
 fn data_callback(
     data: &mut [f32],

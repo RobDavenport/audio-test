@@ -92,21 +92,21 @@ impl Patch {
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    frequency_multiplier: FrequencyMultiplier::OneHalf,
                     detune: 0,
-                    envelope: Envelope::default(),
+                    envelope: Envelope::new(170, 90, 80, 0, 40, 40),
                 },
                 Operator {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::Two,
                     detune: 0,
-                    envelope: Envelope::new(220, 235, 255, 0, 40, 40),
+                    envelope: Envelope::new(205, 190, 80, 0, 90, 90),
                 },
                 Operator {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Envelope::new(255, 210, 220, 185, 40, 40),
+                    envelope: Envelope::new(255, 150, 60, 0, 60, 60),
                 },
             ],
             algorithm: Algorithm::One,
@@ -115,20 +115,25 @@ impl Patch {
     }
 
     fn func(&mut self, base_tone: f32) -> f32 {
-        // 1st operator is always feedback
         let mut outputs = [0.0f32; 4];
         let mut final_output = 0.0f32;
 
         let algorithm = self.algorithm.get_definition();
 
-        (0..OPERATOR_COUNT).for_each(|i| {
-            let result = match algorithm.modulators[i] {
+        // 1st Operator is always feedback
+        outputs[0] = self.operators[0].func(
+            ((self.prev_feedback1 + self.prev_feedback2) / 2.0) * self.feedback.as_multiplier(),
+            base_tone,
+        );
+
+        if algorithm.carriers[0] == true {
+            final_output += outputs[0];
+        };
+        // End 1st Operator
+
+        (1..OPERATOR_COUNT).for_each(|i| {
+            let result = match algorithm.modulators[i - 1] {
                 ModulatedBy::None => self.operators[i].func(0.0, base_tone),
-                ModulatedBy::Feedback => self.operators[i].func(
-                    ((self.prev_feedback1 + self.prev_feedback2) / 2.0)
-                        * self.feedback.as_multiplier(),
-                    base_tone,
-                ),
                 ModulatedBy::Single(modulator) => {
                     self.operators[i].func(outputs[modulator], base_tone)
                 }
@@ -146,6 +151,7 @@ impl Patch {
             }
         });
 
+        // Handle feedback
         self.prev_feedback2 = self.prev_feedback1;
         let final_output = final_output / AMPLIFICATION;
         self.prev_feedback1 = final_output;

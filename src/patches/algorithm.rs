@@ -2,7 +2,6 @@ use super::OPERATOR_COUNT;
 
 pub enum ModulatedBy {
     None,
-    Feedback,
     Single(usize),
     Double(usize, usize),
 }
@@ -25,7 +24,6 @@ impl Algorithm {
             Algorithm::Zero => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
-                    ModulatedBy::Feedback,
                     ModulatedBy::Single(0),
                     ModulatedBy::Single(1),
                     ModulatedBy::Single(2),
@@ -34,7 +32,6 @@ impl Algorithm {
             Algorithm::One => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
-                    ModulatedBy::Feedback,
                     ModulatedBy::None,
                     ModulatedBy::Double(0, 1),
                     ModulatedBy::Single(2),
@@ -43,7 +40,6 @@ impl Algorithm {
             Algorithm::Two => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
-                    ModulatedBy::Feedback,
                     ModulatedBy::None,
                     ModulatedBy::Single(1),
                     ModulatedBy::Single(2),
@@ -52,7 +48,6 @@ impl Algorithm {
             Algorithm::Three => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
-                    ModulatedBy::Feedback,
                     ModulatedBy::Single(0),
                     ModulatedBy::None,
                     ModulatedBy::Double(1, 2),
@@ -61,7 +56,6 @@ impl Algorithm {
             Algorithm::Four => &AlgorithmDefinition {
                 carriers: [false, true, false, true],
                 modulators: [
-                    ModulatedBy::Feedback,
                     ModulatedBy::Single(0),
                     ModulatedBy::None,
                     ModulatedBy::Single(3),
@@ -70,7 +64,6 @@ impl Algorithm {
             Algorithm::Five => &AlgorithmDefinition {
                 carriers: [false, true, true, true],
                 modulators: [
-                    ModulatedBy::Feedback,
                     ModulatedBy::Single(0),
                     ModulatedBy::Single(0),
                     ModulatedBy::Single(0),
@@ -78,21 +71,11 @@ impl Algorithm {
             },
             Algorithm::Six => &AlgorithmDefinition {
                 carriers: [false, true, true, true],
-                modulators: [
-                    ModulatedBy::Feedback,
-                    ModulatedBy::Single(0),
-                    ModulatedBy::None,
-                    ModulatedBy::None,
-                ],
+                modulators: [ModulatedBy::Single(0), ModulatedBy::None, ModulatedBy::None],
             },
             Algorithm::Seven => &AlgorithmDefinition {
                 carriers: [true, true, true, true],
-                modulators: [
-                    ModulatedBy::Feedback,
-                    ModulatedBy::None,
-                    ModulatedBy::None,
-                    ModulatedBy::None,
-                ],
+                modulators: [ModulatedBy::None, ModulatedBy::None, ModulatedBy::None],
             },
         }
     }
@@ -106,5 +89,5 @@ impl Default for Algorithm {
 
 pub struct AlgorithmDefinition {
     pub(crate) carriers: [bool; OPERATOR_COUNT],
-    pub(crate) modulators: [ModulatedBy; OPERATOR_COUNT],
+    pub(crate) modulators: [ModulatedBy; OPERATOR_COUNT - 1],
 }
