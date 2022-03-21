@@ -3,7 +3,7 @@ use std::{f32::consts::TAU, sync::Arc};
 use parking_lot::RwLock;
 
 use super::{
-    Algorithm, FeedbackLevel, FrequencyMultiplier, ModulatedBy, Operator, AMPLIFICATION,
+    Algorithm, Envelope, FeedbackLevel, FrequencyMultiplier, ModulatedBy, Operator, AMPLIFICATION,
     OPERATOR_COUNT,
 };
 use crate::{Waveform, TARGET_SAMPLE_RATE, TARGET_SAMPLE_TICK_TIME};
@@ -32,7 +32,25 @@ impl PatchHandle {
     }
 
     pub fn set_active(&self, active: bool) {
-        self.patch.write().active = active;
+        let lock = &mut self.patch.write();
+
+        if active != lock.active {
+            lock.active = active;
+            match active {
+                true => {
+                    println!("key on!");
+                    lock.operators
+                        .iter_mut()
+                        .for_each(|operator| operator.envelope.key_on())
+                }
+                false => {
+                    println!("key off!");
+                    lock.operators
+                        .iter_mut()
+                        .for_each(|operator| operator.envelope.key_off())
+                }
+            }
+        }
     }
 
     pub fn write_to_buffer(&mut self, data: &mut [f32], channels: u16) {
@@ -68,30 +86,30 @@ impl Patch {
             operators: [
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 255,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
+                    envelope: Envelope::default(),
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 0,
-                    frequency_multiplier: FrequencyMultiplier::OneHalf,
+                    frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
+                    envelope: Envelope::default(),
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 200,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    frequency_multiplier: FrequencyMultiplier::Two,
                     detune: 0,
+                    envelope: Envelope::new(220, 235, 255, 0, 40, 40),
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    max_level: 255,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
+                    envelope: Envelope::new(255, 210, 220, 185, 40, 40),
                 },
             ],
-            algorithm: Algorithm::Seven,
+            algorithm: Algorithm::One,
             feedback: FeedbackLevel::Seven,
         }
     }
@@ -147,20 +165,20 @@ impl Iterator for Patch {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.active {
-            self.wall_clock += self.wall_tick_time;
+        self.wall_clock += self.wall_tick_time;
 
-            //TODO: Could optimize this with integer math?
-            while self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
-                self.clock += 1;
-                self.wall_clock -= TARGET_SAMPLE_TICK_TIME;
-            }
+        //TODO: Could optimize this with integer math?
+        while self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
+            self.clock += 1;
+            self.wall_clock -= TARGET_SAMPLE_TICK_TIME;
 
-            let tone = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
-
-            Some(self.func(tone))
-        } else {
-            None
+            self.operators
+                .iter_mut()
+                .for_each(|operator| operator.envelope.tick());
         }
+
+        let tone = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
+
+        Some(self.func(tone))
     }
 }

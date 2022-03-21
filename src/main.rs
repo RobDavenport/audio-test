@@ -1,4 +1,3 @@
-mod envelope;
 mod notes;
 mod patches;
 mod waveform;
@@ -18,13 +17,14 @@ use crate::patches::{Algorithm, Patch, PatchHandle};
 pub use waveform::Waveform;
 
 const DUTY: f64 = 0.25;
-//pub const TARGET_SAMPLE_RATE: usize = 96_000;
 pub const TARGET_SAMPLE_RATE: usize = 48_000; //48khz
 
 // Other potential target sample rates
+//pub const TARGET_SAMPLE_RATE: usize = 96_000;
 //pub const TARGET_SAMPLE_RATE: usize = 44_100; //44.1 kHz
 //pub const TARGET_SAMPLE_RATE: usize = 22_050; //22.050 khz
-//pub const TARGET_SAMPLE_RATE: usize = 11_025; //22.050 khz
+//pub const TARGET_SAMPLE_RATE: usize = 11_025; //11.025 khz
+//pub const TARGET_SAMPLE_RATE: usize = 2048;
 
 pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
 
@@ -220,11 +220,9 @@ fn data_callback(
     // Set all channels to silence
     data.iter_mut().for_each(|data| *data = 0.0);
 
-    handles.iter_mut().for_each(|handle| {
-        if handle.get_active() {
-            handle.write_to_buffer(data, channels)
-        }
-    });
+    handles
+        .iter_mut()
+        .for_each(|handle| handle.write_to_buffer(data, channels));
 
     // Update the oscilliscope
     let mut graph = graph.write();

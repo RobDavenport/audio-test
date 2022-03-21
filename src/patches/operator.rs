@@ -1,20 +1,20 @@
 use crate::Waveform;
 
-use super::attenuation;
+use super::Envelope;
 
 #[derive(Default, Clone)]
 pub struct Operator {
     pub(crate) waveform: Waveform,
-    pub(crate) max_level: u8,
     pub(crate) frequency_multiplier: FrequencyMultiplier,
     pub(crate) detune: i8,
+    pub(crate) envelope: Envelope,
 }
 
 impl Operator {
     pub fn func(&self, modulation: f32, tone: f32) -> f32 {
         self.waveform
             .func(modulation + self.frequency_multiplier.multiply(tone))
-            * attenuation(self.max_level)
+            * self.envelope.attenuation()
     }
 }
 
