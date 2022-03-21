@@ -1,3 +1,4 @@
+mod envelope;
 mod notes;
 mod patches;
 mod waveform;
@@ -19,9 +20,12 @@ pub use waveform::Waveform;
 const DUTY: f64 = 0.25;
 //pub const TARGET_SAMPLE_RATE: usize = 96_000;
 pub const TARGET_SAMPLE_RATE: usize = 48_000; //48khz
-                                              //pub const TARGET_SAMPLE_RATE: usize = 44_100; //44.1 kHz
-                                              //pub const TARGET_SAMPLE_RATE: usize = 22_050; //22.050 khz
-                                              //pub const TARGET_SAMPLE_RATE: usize = 11_025; //22.050 khz
+
+// Other potential target sample rates
+//pub const TARGET_SAMPLE_RATE: usize = 44_100; //44.1 kHz
+//pub const TARGET_SAMPLE_RATE: usize = 22_050; //22.050 khz
+//pub const TARGET_SAMPLE_RATE: usize = 11_025; //22.050 khz
+
 pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
 
 #[macroquad::main("audio-test")]

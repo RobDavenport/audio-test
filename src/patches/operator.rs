@@ -1,6 +1,6 @@
 use crate::Waveform;
 
-use super::ENV_DB;
+use super::attenuation;
 
 #[derive(Default, Clone)]
 pub struct Operator {
@@ -14,12 +14,7 @@ impl Operator {
     pub fn func(&self, modulation: f32, tone: f32) -> f32 {
         self.waveform
             .func(modulation + self.frequency_multiplier.multiply(tone))
-            * self.attenuation()
-    }
-
-    fn attenuation(&self) -> f32 {
-        let db = -(ENV_DB / (u8::MAX as f32 + 1.0)) * (u8::MAX - self.max_level) as f32;
-        10f32.powf(db / 20.0)
+            * attenuation(self.max_level)
     }
 }
 
