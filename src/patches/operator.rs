@@ -11,9 +11,9 @@ pub struct Operator {
 }
 
 impl Operator {
-    pub fn func(&self, modulation: f32, phase: f32) -> f32 {
+    pub fn func(&self, phase: f32) -> f32 {
         self.waveform
-            .func(modulation + self.frequency_multiplier.multiply(phase))
+            .func(self.frequency_multiplier.multiply(phase))
             * self.envelope.attenuation()
     }
 }

@@ -1,4 +1,7 @@
-use std::{f32::consts::TAU, sync::Arc};
+use std::{
+    f32::consts::{PI, TAU},
+    sync::Arc,
+};
 
 use parking_lot::RwLock;
 
@@ -29,6 +32,10 @@ impl PatchHandle {
 
     pub fn set_algorithm(&self, algorithm: Algorithm) {
         self.patch.write().algorithm = algorithm
+    }
+
+    pub fn set_waveform(&self, operator_index: usize, waveform: Waveform) {
+        self.patch.write().operators[operator_index].waveform = waveform;
     }
 
     pub fn set_active(&self, active: bool) {
@@ -92,15 +99,17 @@ impl Patch {
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::OneHalf,
+                    frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Envelope::new(170, 90, 80, 0, 40, 40),
+                    envelope: Envelope::default(),
+                    //envelope: Envelope::new(170, 90, 80, 0, 40, 40),
                 },
                 Operator {
                     waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::Two,
+                    frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Envelope::new(205, 190, 80, 0, 90, 90),
+                    envelope: Envelope::default(),
+                    //envelope: Envelope::new(205, 230, 80, 0, 90, 90),
                 },
                 Operator {
                     waveform: Waveform::Sine,
@@ -122,8 +131,8 @@ impl Patch {
 
         // 1st Operator is always feedback
         outputs[0] = self.operators[0].func(
-            ((self.prev_feedback1 + self.prev_feedback2) / 2.0) * self.feedback.as_multiplier(),
-            phase,
+            (((self.prev_feedback1 + self.prev_feedback2) / 2.0) * self.feedback.as_multiplier())
+                + phase,
         );
 
         if algorithm.carriers[0] == true {
@@ -133,10 +142,12 @@ impl Patch {
 
         (1..OPERATOR_COUNT).for_each(|i| {
             let result = match algorithm.modulators[i - 1] {
-                ModulatedBy::None => self.operators[i].func(0.0, phase),
-                ModulatedBy::Single(modulator) => self.operators[i].func(outputs[modulator], phase),
+                ModulatedBy::None => self.operators[i].func(phase),
+                ModulatedBy::Single(modulator) => {
+                    self.operators[i].func(outputs[modulator] + phase)
+                }
                 ModulatedBy::Double(first, second) => {
-                    self.operators[i].func(outputs[first] + outputs[second], phase)
+                    self.operators[i].func(outputs[first] + outputs[second] + phase)
                 }
             };
 
