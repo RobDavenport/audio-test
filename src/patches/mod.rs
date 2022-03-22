@@ -2,13 +2,15 @@ mod algorithm;
 mod envelope;
 mod feedback;
 mod operator;
-mod patch;
+mod patch_definition;
+mod patch_instance;
 
 pub use algorithm::*;
 pub use envelope::*;
 pub use feedback::*;
 pub use operator::*;
-pub use patch::*;
+pub use patch_definition::*;
+pub use patch_instance::*;
 
 pub const OPERATOR_COUNT: usize = 4;
 pub const AMPLIFICATION: f32 = 25.0;

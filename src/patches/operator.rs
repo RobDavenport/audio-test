@@ -1,19 +1,27 @@
+use std::sync::Arc;
+
 use crate::Waveform;
 
-use super::Envelope;
+use super::{EnvelopeDefinition, EnvelopeInstance};
 
 #[derive(Default, Clone)]
-pub struct Operator {
+pub struct OperatorDefinition {
     pub(crate) waveform: Waveform,
     pub(crate) frequency_multiplier: FrequencyMultiplier,
     pub(crate) detune: i8,
-    pub(crate) envelope: Envelope,
+    pub(crate) envelope: Arc<EnvelopeDefinition>,
 }
 
-impl Operator {
+pub struct OperatorInstance {
+    pub(crate) definition: Arc<OperatorDefinition>,
+    pub(crate) envelope: EnvelopeInstance,
+}
+
+impl OperatorInstance {
     pub fn func(&self, phase: f32) -> f32 {
-        self.waveform
-            .func(self.frequency_multiplier.multiply(phase))
+        self.definition
+            .waveform
+            .func(self.definition.frequency_multiplier.multiply(phase))
             * self.envelope.attenuation()
     }
 }

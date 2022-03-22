@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use super::{attenuation_table_u10, attenuation_table_u8, ATTENUATION_MAX};
 
 const SLOWEST_ATTENUATION_TICK_COUNT: u8 = 11; // Number of shifts
 const HIGHEST_ATTENUATION_RATE: u16 = u8::MAX as u16 * 2;
 
 #[derive(Clone, Debug)]
-pub struct Envelope {
+pub struct EnvelopeDefinition {
     total_level: u8,
     sustain_level: u8,
 
@@ -12,15 +14,9 @@ pub struct Envelope {
     decay_attack_rate: u8,
     decay_sustain_rate: u8,
     release_rate: u8,
-
-    current_attenuation: u16,
-    attenuation_rate: u16,
-    current_phase: EnvelopePhase,
-    clock: u16,
-    cycles_per_attenuation_tick: u8,
 }
 
-impl Default for Envelope {
+impl Default for EnvelopeDefinition {
     fn default() -> Self {
         Self {
             total_level: 0,
@@ -30,25 +26,11 @@ impl Default for Envelope {
             decay_attack_rate: 0,
             decay_sustain_rate: 0,
             release_rate: 0,
-
-            current_attenuation: ATTENUATION_MAX,
-            attenuation_rate: 0,
-            current_phase: EnvelopePhase::Release,
-            clock: 0,
-            cycles_per_attenuation_tick: 0,
         }
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-enum EnvelopePhase {
-    Attack,
-    Decay,
-    Sustain,
-    Release,
-}
-
-impl Envelope {
+impl EnvelopeDefinition {
     pub fn new(
         total_level: u8,
         attack_rate: u8,
@@ -67,10 +49,40 @@ impl Envelope {
             ..Default::default()
         }
     }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+enum EnvelopePhase {
+    Attack,
+    Decay,
+    Sustain,
+    Release,
+}
+#[derive(Clone, Debug)]
+pub struct EnvelopeInstance {
+    definition: Arc<EnvelopeDefinition>,
+    current_attenuation: u16,
+    attenuation_rate: u16,
+    current_phase: EnvelopePhase,
+    clock: u16,
+    cycles_per_attenuation_tick: u8,
+}
+
+impl EnvelopeInstance {
+    pub fn new(definition: Arc<EnvelopeDefinition>) -> Self {
+        Self {
+            definition,
+            current_attenuation: ATTENUATION_MAX,
+            attenuation_rate: 0,
+            current_phase: EnvelopePhase::Release,
+            clock: 0,
+            cycles_per_attenuation_tick: 0,
+        }
+    }
 
     pub fn attenuation(&self) -> f32 {
         attenuation_table_u10(self.current_attenuation)
-            * attenuation_table_u8(u8::MAX - self.total_level)
+            * attenuation_table_u8(u8::MAX - self.definition.total_level)
     }
 
     pub fn key_on(&mut self) {
@@ -150,7 +162,7 @@ impl Envelope {
                 EnvelopePhase::Decay => {
                     self.current_attenuation += 1;
 
-                    if self.current_attenuation >= self.sustain_level as u16 {
+                    if self.current_attenuation >= self.definition.sustain_level as u16 {
                         self.next_phase();
                     }
                 }
@@ -162,34 +174,40 @@ impl Envelope {
     }
 
     pub(crate) fn calculate_attack_rate(&self) -> u16 {
-        if self.attack_rate == 0 {
+        if self.definition.attack_rate == 0 {
             return 0;
         } else {
-            (self.attack_rate as u16) * 2
+            (self.definition.attack_rate as u16) * 2
         }
     }
 
     pub(crate) fn calculate_decay_rate(&self) -> u16 {
-        if self.decay_attack_rate == 0 {
+        if self.definition.decay_attack_rate == 0 {
             return 0;
         } else {
-            (self.decay_attack_rate as u16) * 2
+            (self.definition.decay_attack_rate as u16) * 2
         }
     }
 
     pub(crate) fn calculate_sustain_rate(&self) -> u16 {
-        if self.decay_sustain_rate == 0 {
+        if self.definition.decay_sustain_rate == 0 {
             return 0;
         } else {
-            (self.decay_sustain_rate as u16) * 2
+            (self.definition.decay_sustain_rate as u16) * 2
         }
     }
 
     pub(crate) fn calculate_release_rate(&self) -> u16 {
-        if self.release_rate == 0 {
+        if self.definition.release_rate == 0 {
             return 0;
         } else {
-            (self.release_rate as u16) * 2
+            (self.definition.release_rate as u16) * 2
         }
+    }
+}
+
+impl Default for EnvelopeInstance {
+    fn default() -> Self {
+        Self::new(Arc::new(EnvelopeDefinition::default()))
     }
 }

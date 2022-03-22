@@ -1,18 +1,19 @@
 mod notes;
 mod patches;
+mod sequencer;
 mod waveform;
 
 use std::{collections::VecDeque, sync::Arc};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    SampleRate, StreamConfig,
+    StreamConfig,
 };
 use macroquad::prelude::*;
 use parking_lot::RwLock;
 
 use crate::notes::Notes;
-use crate::patches::{Algorithm, Patch, PatchHandle};
+use crate::patches::*;
 
 pub use waveform::Waveform;
 
@@ -57,37 +58,6 @@ async fn main() {
     println!("Change waveform by pressing numbers 0 through 9.");
     println!("Play notes by pressing keys from Z to M and ,./ lshift.");
 
-    let waveforms = [
-        (KeyCode::Key1, Waveform::Sine),
-        (KeyCode::Key2, Waveform::Square),
-        (KeyCode::Key3, Waveform::Saw),
-        (KeyCode::Key4, Waveform::Triangle),
-        (KeyCode::Key5, Waveform::HalfSine),
-        (KeyCode::Key6, Waveform::AbsoluteSine),
-        (KeyCode::Key7, Waveform::QuarterSine),
-        (KeyCode::Key8, Waveform::AlternatingSine),
-        (KeyCode::Key9, Waveform::CamelSine),
-        (KeyCode::Key0, Waveform::LogarithmicSaw),
-        (KeyCode::Minus, Waveform::pulse(0.33)),
-        (KeyCode::Equal, Waveform::pulse(0.10)),
-        (KeyCode::Backspace, Waveform::Noise),
-    ]
-    .into_iter()
-    .collect::<Vec<_>>();
-
-    let algorithms = [
-        (KeyCode::Key1, Algorithm::Zero),
-        (KeyCode::Key2, Algorithm::One),
-        (KeyCode::Key3, Algorithm::Two),
-        (KeyCode::Key4, Algorithm::Three),
-        (KeyCode::Key5, Algorithm::Four),
-        (KeyCode::Key6, Algorithm::Five),
-        (KeyCode::Key7, Algorithm::Six),
-        (KeyCode::Key8, Algorithm::Seven),
-    ]
-    .into_iter()
-    .collect::<Vec<_>>();
-
     let mut handles = Vec::new();
 
     let mut keys = [
@@ -114,8 +84,8 @@ async fn main() {
     .iter()
     .enumerate()
     .map(|(index, code)| {
-        let sound = Patch::new(0.0, sample_rate.0);
-        let sound_handle = PatchHandle::new(sound);
+        let sound = PatchDefinition::new(sample_rate.0);
+        let sound_handle = PatchInstanceHandle::new(PatchInstance::new(Arc::new(sound), 0.0));
         sound_handle.set_frequency(notes.index_to_frequency(index + 35));
         handles.push(sound_handle.clone());
         (code, sound_handle)
@@ -150,8 +120,6 @@ async fn main() {
         }
     });
 
-    let mut active_waveform = 0;
-
     loop {
         let screen_height = screen_height();
 
@@ -177,30 +145,6 @@ async fn main() {
         });
         drop(read);
 
-        waveforms
-            .iter()
-            .enumerate()
-            .for_each(|(index, (key, waveform))| {
-                if is_key_pressed(*key) {
-                    keys.iter_mut()
-                        .for_each(|(_, handle)| handle.set_waveform(3, waveform.clone()));
-                    println!("Waveform changed: {:?}", waveform);
-                    active_waveform = index;
-                }
-            });
-
-        // algorithms
-        //     .iter()
-        //     .enumerate()
-        //     .for_each(|(index, (key, algorithm))| {
-        //         if is_key_pressed(*key) {
-        //             keys.iter_mut()
-        //                 .for_each(|(_, handle)| handle.set_algorithm(algorithm.clone()));
-        //             println!("algorithm changed: {:?}", algorithm);
-        //             active_waveform = index;
-        //         }
-        //     });
-
         next_frame().await
     }
 }
@@ -208,7 +152,7 @@ async fn main() {
 fn data_callback(
     data: &mut [f32],
     channels: u16,
-    handles: &mut [PatchHandle],
+    handles: &mut [PatchInstanceHandle],
     graph: Arc<RwLock<VecDeque<f32>>>,
 ) {
     // Set all channels to silence
