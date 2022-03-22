@@ -4,4 +4,4 @@ mod sequence;
 pub use pattern::*;
 pub use sequence::*;
 
-pub const CHANNEL_COUNT: usize = 6;
+pub const MUSIC_CHANNEL_COUNT: usize = 8;

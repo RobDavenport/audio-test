@@ -130,6 +130,19 @@ impl PatchInstance {
             .zip(self)
             .for_each(|(frame, sample)| frame.iter_mut().for_each(|data| *data += sample))
     }
+
+    /// Forcefully tick
+    pub(crate) fn force_tick(&mut self) -> f32 {
+        self.clock += 1;
+
+        self.operators
+            .iter_mut()
+            .for_each(|operator| operator.envelope.tick());
+
+        let phase = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
+
+        self.func(phase)
+    }
 }
 
 impl Iterator for PatchInstance {
