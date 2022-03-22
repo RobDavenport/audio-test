@@ -11,9 +11,9 @@ pub struct Operator {
 }
 
 impl Operator {
-    pub fn func(&self, modulation: f32, tone: f32) -> f32 {
+    pub fn func(&self, modulation: f32, phase: f32) -> f32 {
         self.waveform
-            .func(modulation + self.frequency_multiplier.multiply(tone))
+            .func(modulation + self.frequency_multiplier.multiply(phase))
             * self.envelope.attenuation()
     }
 }
@@ -45,24 +45,24 @@ impl Default for FrequencyMultiplier {
 }
 
 impl FrequencyMultiplier {
-    fn multiply(&self, frequency: f32) -> f32 {
+    fn multiply(&self, phase: f32) -> f32 {
         match self {
-            FrequencyMultiplier::OneSixteenth => frequency / 16.0,
-            FrequencyMultiplier::OneEigth => frequency / 8.0,
-            FrequencyMultiplier::OneFourth => frequency / 4.0,
-            FrequencyMultiplier::OneHalf => frequency / 2.0,
-            FrequencyMultiplier::One => frequency,
-            FrequencyMultiplier::Two => frequency * 2.0,
-            FrequencyMultiplier::Three => frequency * 3.0,
-            FrequencyMultiplier::Four => frequency * 4.0,
-            FrequencyMultiplier::Five => frequency * 5.0,
-            FrequencyMultiplier::Six => frequency * 6.0,
-            FrequencyMultiplier::Seven => frequency * 7.0,
-            FrequencyMultiplier::Eight => frequency * 8.0,
-            FrequencyMultiplier::Nine => frequency * 9.0,
-            FrequencyMultiplier::Ten => frequency * 10.0,
-            FrequencyMultiplier::Eleven => frequency * 11.0,
-            FrequencyMultiplier::Twelve => frequency * 12.0,
+            FrequencyMultiplier::OneSixteenth => phase / 16.0,
+            FrequencyMultiplier::OneEigth => phase / 8.0,
+            FrequencyMultiplier::OneFourth => phase / 4.0,
+            FrequencyMultiplier::OneHalf => phase / 2.0,
+            FrequencyMultiplier::One => phase,
+            FrequencyMultiplier::Two => phase * 2.0,
+            FrequencyMultiplier::Three => phase * 3.0,
+            FrequencyMultiplier::Four => phase * 4.0,
+            FrequencyMultiplier::Five => phase * 5.0,
+            FrequencyMultiplier::Six => phase * 6.0,
+            FrequencyMultiplier::Seven => phase * 7.0,
+            FrequencyMultiplier::Eight => phase * 8.0,
+            FrequencyMultiplier::Nine => phase * 9.0,
+            FrequencyMultiplier::Ten => phase * 10.0,
+            FrequencyMultiplier::Eleven => phase * 11.0,
+            FrequencyMultiplier::Twelve => phase * 12.0,
         }
     }
 }

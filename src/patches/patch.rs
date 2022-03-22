@@ -114,7 +114,7 @@ impl Patch {
         }
     }
 
-    fn func(&mut self, base_tone: f32) -> f32 {
+    fn func(&mut self, phase: f32) -> f32 {
         let mut outputs = [0.0f32; 4];
         let mut final_output = 0.0f32;
 
@@ -123,7 +123,7 @@ impl Patch {
         // 1st Operator is always feedback
         outputs[0] = self.operators[0].func(
             ((self.prev_feedback1 + self.prev_feedback2) / 2.0) * self.feedback.as_multiplier(),
-            base_tone,
+            phase,
         );
 
         if algorithm.carriers[0] == true {
@@ -133,12 +133,10 @@ impl Patch {
 
         (1..OPERATOR_COUNT).for_each(|i| {
             let result = match algorithm.modulators[i - 1] {
-                ModulatedBy::None => self.operators[i].func(0.0, base_tone),
-                ModulatedBy::Single(modulator) => {
-                    self.operators[i].func(outputs[modulator], base_tone)
-                }
+                ModulatedBy::None => self.operators[i].func(0.0, phase),
+                ModulatedBy::Single(modulator) => self.operators[i].func(outputs[modulator], phase),
                 ModulatedBy::Double(first, second) => {
-                    self.operators[i].func(outputs[first] + outputs[second], base_tone)
+                    self.operators[i].func(outputs[first] + outputs[second], phase)
                 }
             };
 
@@ -183,8 +181,8 @@ impl Iterator for Patch {
                 .for_each(|operator| operator.envelope.tick());
         }
 
-        let tone = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
+        let phase = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
 
-        Some(self.func(tone))
+        Some(self.func(phase))
     }
 }
