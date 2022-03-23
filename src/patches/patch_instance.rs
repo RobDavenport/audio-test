@@ -39,7 +39,7 @@ pub struct PatchInstance {
     pub(crate) definition: Arc<PatchDefinition>,
     pub(crate) operators: [OperatorInstance; OPERATOR_COUNT],
     pub(crate) active: bool,
-    pub(crate) clock: u32,
+    pub(crate) clock: f32,
     pub(crate) base_frequency: f32,
     prev_feedback1: f32,
     prev_feedback2: f32,
@@ -52,7 +52,7 @@ impl PatchInstance {
             operators: definition.generate_new_operators(),
             definition,
             active: false,
-            clock: 0,
+            clock: 0.0,
             wall_clock: 0.0,
             base_frequency,
             prev_feedback1: 0.0,
@@ -73,8 +73,12 @@ impl PatchInstance {
                 + phase,
         );
 
+        // Handle feedback
+        self.prev_feedback2 = self.prev_feedback1;
+        self.prev_feedback1 = outputs[0];
+
         if algorithm.carriers[0] == true {
-            final_output += outputs[0];
+            final_output += outputs[0] * AMPLIFICATION;
         };
         // End 1st Operator
 
@@ -98,10 +102,7 @@ impl PatchInstance {
             }
         });
 
-        // Handle feedback
-        self.prev_feedback2 = self.prev_feedback1;
         let final_output = final_output / AMPLIFICATION;
-        self.prev_feedback1 = final_output;
         final_output
     }
 
@@ -115,15 +116,19 @@ impl PatchInstance {
 
     /// Forcefully tick
     pub(crate) fn force_tick(&mut self) -> f32 {
-        self.clock += 1;
-
-        self.operators
-            .iter_mut()
-            .for_each(|operator| operator.envelope.tick());
+        self.tick();
 
         let phase = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
 
         self.func(phase)
+    }
+
+    fn tick(&mut self) {
+        self.clock = (self.clock + 1.0) % (TARGET_SAMPLE_RATE as f32 / self.base_frequency);
+
+        self.operators
+            .iter_mut()
+            .for_each(|operator| operator.envelope.tick());
     }
 
     pub fn set_active(&mut self, active: bool) {
@@ -156,15 +161,11 @@ impl Iterator for PatchInstance {
 
         //TODO: Could optimize this with integer math?
         while self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
-            self.clock += 1;
+            self.tick();
             self.wall_clock -= TARGET_SAMPLE_TICK_TIME;
-
-            self.operators
-                .iter_mut()
-                .for_each(|operator| operator.envelope.tick());
         }
 
-        let phase = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
+        let phase = self.clock * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
 
         Some(self.func(phase))
     }

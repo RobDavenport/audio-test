@@ -19,18 +19,30 @@ use crate::sequencer::SequenceDefinition;
 pub use waveform::Waveform;
 
 const DUTY: f64 = 0.25;
-pub const TARGET_SAMPLE_RATE: usize = 48_000; //48khz
+pub const TARGET_SAMPLE_RATE: u32 = 48_000; //48khz
 
 // Other potential target sample rates
-//pub const TARGET_SAMPLE_RATE: usize = 96_000;
-//pub const TARGET_SAMPLE_RATE: usize = 44_100; //44.1 kHz
-//pub const TARGET_SAMPLE_RATE: usize = 22_050; //22.050 khz
-//pub const TARGET_SAMPLE_RATE: usize = 11_025; //11.025 khz
-//pub const TARGET_SAMPLE_RATE: usize = 2048;
+//pub const TARGET_SAMPLE_RATE: u32 = 96_000;
+//pub const TARGET_SAMPLE_RATE: u32 = 44_100; //44.1 kHz
+//pub const TARGET_SAMPLE_RATE: u32 = 22_050; //22.050 khz
+//pub const TARGET_SAMPLE_RATE: u32 = 11_025; //11.025 khz
+//pub const TARGET_SAMPLE_RATE: u32 = 2048;
 
 pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
+const GRAPH_WINDOW_MULTIPLIER: f32 = 2.0; // How many samples to store
+const GRAPH_X: f32 = 1.0f32 / GRAPH_WINDOW_MULTIPLIER;
 
-#[macroquad::main("audio-test")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Audio Test".to_owned(),
+        fullscreen: false,
+        window_width: 1600,
+        window_height: 900,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     notes::generate();
     patches::init_attenuation_table();
@@ -86,13 +98,13 @@ async fn main() {
     .map(|(index, code)| {
         let sound = PatchDefinition::new(sample_rate.0);
         let sound_handle = PatchInstanceHandle::new(PatchInstance::new(Arc::new(sound), 0.0));
-        sound_handle.set_frequency(notes::index_to_frequency(index + 35));
+        sound_handle.set_frequency(notes::index_to_frequency(index + 35)); //35
         handles.push(sound_handle.clone());
         (code, sound_handle)
     })
     .collect::<Vec<_>>();
 
-    let graph = (0..screen_width() as usize * 2)
+    let graph = (0..(screen_width() * GRAPH_WINDOW_MULTIPLIER) as usize)
         .map(|_| 0.0f32)
         .collect::<VecDeque<f32>>();
 
@@ -110,7 +122,10 @@ async fn main() {
                 move |data, _| {
                     let graph = graph_clone.clone();
                     let sequence_handle = sequence_handle.clone();
-                    sequence_callback(data, channels, sequence_handle);
+                    // Reset output to zero
+                    data.iter_mut().for_each(|data| *data = 0.0);
+
+                    //sequence_callback(data, channels, sequence_handle);
                     data_callback(data, channels, handles.as_mut_slice(), graph);
                 },
                 move |err| {
@@ -128,6 +143,7 @@ async fn main() {
 
     loop {
         let screen_height = screen_height();
+        let mid_screen = screen_height / 2.0;
 
         keys.iter_mut().for_each(|(key, handle)| {
             if is_key_pressed(**key) {
@@ -138,13 +154,12 @@ async fn main() {
         });
 
         let read = graph.read();
-        (0..read.len() - 1).for_each(|index| {
-            let mid_screen = screen_height / 2.0;
+        (0..read.len() as usize - 1).for_each(|index| {
             draw_line(
-                index as f32,
-                mid_screen - read[index] * 20.0,
-                index as f32 + 0.5,
-                mid_screen - read[index + 1] * 20.0,
+                index as f32 * GRAPH_X,
+                mid_screen - read[index] * 60.0,
+                (index as f32 * GRAPH_X) + GRAPH_X,
+                mid_screen - read[index + 1] * 60.0,
                 1.0,
                 GREEN,
             )
@@ -156,9 +171,6 @@ async fn main() {
 }
 
 fn sequence_callback(data: &mut [f32], channels: u16, sequence: SequenceInstanceHandle) {
-    // Set all channels to silence
-    data.iter_mut().for_each(|data| *data = 0.0);
-
     sequence.write_to_buffer(data, channels);
 }
 
@@ -168,9 +180,6 @@ fn data_callback(
     handles: &mut [PatchInstanceHandle],
     graph: Arc<RwLock<VecDeque<f32>>>,
 ) {
-    // Set all channels to silence
-    //data.iter_mut().for_each(|data| *data = 0.0);
-
     handles
         .iter_mut()
         .for_each(|handle| handle.write_to_buffer(data, channels));

@@ -37,34 +37,60 @@ impl PatchDefinition {
     pub fn new(sample_rate: u32) -> Self {
         Self {
             wall_tick_time: 1.0 / sample_rate as f32,
+            // operators: [
+            //     Arc::new(OperatorDefinition {
+            //         waveform: Waveform::Sine,
+            //         frequency_multiplier: FrequencyMultiplier::One,
+            //         detune: 0,
+            //         envelope: Arc::new(EnvelopeDefinition::new(255, 255, 0, 255, 0, 255)),
+            //     }),
+            //     Arc::new(OperatorDefinition {
+            //         waveform: Waveform::Sine,
+            //         frequency_multiplier: FrequencyMultiplier::One,
+            //         detune: 0,
+            //         envelope: Arc::new(EnvelopeDefinition::default()),
+            //     }),
+            //     Arc::new(OperatorDefinition {
+            //         waveform: Waveform::CamelSine,
+            //         frequency_multiplier: FrequencyMultiplier::OneHalf,
+            //         detune: 0,
+            //         envelope: Arc::new(EnvelopeDefinition::default()),
+            //     }),
+            //     Arc::new(OperatorDefinition {
+            //         waveform: Waveform::Sine,
+            //         frequency_multiplier: FrequencyMultiplier::One,
+            //         detune: 0,
+            //         envelope: Arc::new(EnvelopeDefinition::default()),
+            //     }),
+            // ],
             operators: [
                 Arc::new(OperatorDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::default()),
+                    envelope: Arc::new(EnvelopeDefinition::new(105, 135, 140, 250, 20, 50)),
                 }),
                 Arc::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    waveform: Waveform::QuarterSine,
+                    frequency_multiplier: FrequencyMultiplier::Two,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(125, 135, 140, 230, 140, 140)),
+                    envelope: Arc::new(EnvelopeDefinition::new(225, 135, 140, 250, 20, 200)),
                 }),
                 Arc::new(OperatorDefinition {
                     waveform: Waveform::CamelSine,
-                    frequency_multiplier: FrequencyMultiplier::OneHalf,
+                    frequency_multiplier: FrequencyMultiplier::Two,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(200, 235, 140, 230, 140, 140)),
+                    envelope: Arc::new(EnvelopeDefinition::new(220, 235, 140, 250, 040, 080)),
                 }),
                 Arc::new(OperatorDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(255, 249, 100, 240, 120, 120)),
+                    envelope: Arc::new(EnvelopeDefinition::new(255, 249, 100, 240, 100, 120)),
                 }),
             ],
             algorithm: Algorithm::One,
-            feedback: FeedbackLevel::Zero,
+            feedback: FeedbackLevel::Nine,
         }
     }
 }

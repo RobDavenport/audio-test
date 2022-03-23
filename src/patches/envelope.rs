@@ -147,6 +147,9 @@ impl EnvelopeInstance {
         {
             return;
         } else {
+            if self.attenuation_rate == 0 {
+                return;
+            }
             // if self.total_level != 0 {
             //     println!("att: {}, {:?}, rate: {}", self.current_attenuation, self.current_phase, self.attenuation_rate)
             // }
