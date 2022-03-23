@@ -11,9 +11,10 @@ use cpal::{
 };
 use macroquad::prelude::*;
 use parking_lot::RwLock;
+use sequencer::{SequenceInstance, SequenceInstanceHandle};
 
-use crate::notes::Notes;
 use crate::patches::*;
+use crate::sequencer::SequenceDefinition;
 
 pub use waveform::Waveform;
 
@@ -31,8 +32,7 @@ pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
 
 #[macroquad::main("audio-test")]
 async fn main() {
-    let notes = Notes::generate();
-
+    notes::generate();
     patches::init_attenuation_table();
 
     //let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
@@ -86,7 +86,7 @@ async fn main() {
     .map(|(index, code)| {
         let sound = PatchDefinition::new(sample_rate.0);
         let sound_handle = PatchInstanceHandle::new(PatchInstance::new(Arc::new(sound), 0.0));
-        sound_handle.set_frequency(notes.index_to_frequency(index + 35));
+        sound_handle.set_frequency(notes::index_to_frequency(index + 35));
         handles.push(sound_handle.clone());
         (code, sound_handle)
     })
@@ -99,13 +99,19 @@ async fn main() {
     let graph = Arc::new(RwLock::new(graph));
     let graph_clone = graph.clone();
 
+    let sequence = SequenceDefinition::test_pattern(sample_rate.0);
+    let sequence_instance = SequenceInstance::new(Arc::new(sequence));
+    let sequence_handle = SequenceInstanceHandle::new(sequence_instance);
+
     let _sound_thread = std::thread::spawn(move || {
         let stream = device
             .build_output_stream(
                 &config,
                 move |data, _| {
                     let graph = graph_clone.clone();
-                    data_callback(data, channels, handles.as_mut_slice(), graph)
+                    let sequence_handle = sequence_handle.clone();
+                    sequence_callback(data, channels, sequence_handle);
+                    data_callback(data, channels, handles.as_mut_slice(), graph);
                 },
                 move |err| {
                     println!("err: {}", err);
@@ -149,6 +155,13 @@ async fn main() {
     }
 }
 
+fn sequence_callback(data: &mut [f32], channels: u16, sequence: SequenceInstanceHandle) {
+    // Set all channels to silence
+    data.iter_mut().for_each(|data| *data = 0.0);
+
+    sequence.write_to_buffer(data, channels);
+}
+
 fn data_callback(
     data: &mut [f32],
     channels: u16,
@@ -156,7 +169,7 @@ fn data_callback(
     graph: Arc<RwLock<VecDeque<f32>>>,
 ) {
     // Set all channels to silence
-    data.iter_mut().for_each(|data| *data = 0.0);
+    //data.iter_mut().for_each(|data| *data = 0.0);
 
     handles
         .iter_mut()

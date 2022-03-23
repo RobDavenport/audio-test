@@ -4,7 +4,7 @@ use crate::Waveform;
 
 use super::{EnvelopeDefinition, EnvelopeInstance};
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct OperatorDefinition {
     pub(crate) waveform: Waveform,
     pub(crate) frequency_multiplier: FrequencyMultiplier,
@@ -26,7 +26,7 @@ impl OperatorInstance {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FrequencyMultiplier {
     OneSixteenth,
     OneEigth,

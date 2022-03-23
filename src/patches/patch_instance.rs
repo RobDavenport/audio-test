@@ -26,25 +26,7 @@ impl PatchInstanceHandle {
     }
 
     pub fn set_active(&self, active: bool) {
-        let lock = &mut self.patch.write();
-
-        if active != lock.active {
-            lock.active = active;
-            match active {
-                true => {
-                    println!("key on!");
-                    lock.operators
-                        .iter_mut()
-                        .for_each(|operator| operator.envelope.key_on())
-                }
-                false => {
-                    println!("key off!");
-                    lock.operators
-                        .iter_mut()
-                        .for_each(|operator| operator.envelope.key_off())
-                }
-            }
-        }
+        self.patch.write().set_active(active);
     }
 
     pub fn write_to_buffer(&mut self, data: &mut [f32], channels: u16) {
@@ -142,6 +124,27 @@ impl PatchInstance {
         let phase = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
 
         self.func(phase)
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        if active != self.active {
+            self.active = active;
+            match active {
+                true => self
+                    .operators
+                    .iter_mut()
+                    .for_each(|operator| operator.envelope.key_on()),
+                false => self
+                    .operators
+                    .iter_mut()
+                    .for_each(|operator| operator.envelope.key_off()),
+            }
+        }
+    }
+
+    pub fn set_frequency(&mut self, frequency: f32) {
+        println!("Setting frequency: {}", frequency);
+        self.base_frequency = frequency
     }
 }
 

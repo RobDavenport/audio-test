@@ -6,7 +6,7 @@ use super::{
 };
 use crate::Waveform;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PatchDefinition {
     pub(crate) operators: [Arc<OperatorDefinition>; OPERATOR_COUNT],
     pub(crate) algorithm: Algorithm,
@@ -48,23 +48,23 @@ impl PatchDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::default()),
+                    envelope: Arc::new(EnvelopeDefinition::new(125, 135, 140, 230, 140, 140)),
+                }),
+                Arc::new(OperatorDefinition {
+                    waveform: Waveform::CamelSine,
+                    frequency_multiplier: FrequencyMultiplier::OneHalf,
+                    detune: 0,
+                    envelope: Arc::new(EnvelopeDefinition::new(200, 235, 140, 230, 140, 140)),
                 }),
                 Arc::new(OperatorDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::default()),
-                }),
-                Arc::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::One,
-                    detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(255, 150, 60, 0, 60, 60)),
+                    envelope: Arc::new(EnvelopeDefinition::new(255, 249, 100, 240, 120, 120)),
                 }),
             ],
             algorithm: Algorithm::One,
-            feedback: FeedbackLevel::Seven,
+            feedback: FeedbackLevel::Zero,
         }
     }
 }

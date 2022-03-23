@@ -153,7 +153,9 @@ impl EnvelopeInstance {
 
             match self.current_phase {
                 EnvelopePhase::Attack => {
-                    self.current_attenuation -= 1 * ((self.current_attenuation) / 16) + 1;
+                    self.current_attenuation = self
+                        .current_attenuation
+                        .saturating_sub(1 * ((self.current_attenuation) / 16) + 1);
 
                     if self.current_attenuation == 0 {
                         self.next_phase();

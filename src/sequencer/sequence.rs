@@ -1,16 +1,154 @@
 use std::{mem::MaybeUninit, sync::Arc};
 
-use crate::{PatchDefinition, PatchInstance, TARGET_SAMPLE_TICK_TIME};
+use parking_lot::RwLock;
 
-use super::{Pattern, MUSIC_CHANNEL_COUNT};
+use crate::{
+    notes::{self},
+    sequencer::KeyState,
+    PatchDefinition, PatchInstance, TARGET_SAMPLE_RATE, TARGET_SAMPLE_TICK_TIME,
+};
+
+use super::{Pattern, PatternEntry, ENTRIES_PER_BEAT, MUSIC_CHANNEL_COUNT};
 
 #[derive(Clone)]
+pub struct SequenceInstanceHandle {
+    pub(crate) sequence: Arc<RwLock<SequenceInstance>>,
+}
+
+impl SequenceInstanceHandle {
+    pub fn new(sequence: SequenceInstance) -> Self {
+        Self {
+            sequence: Arc::new(RwLock::new(sequence)),
+        }
+    }
+
+    //TODO: Potentially add left/right scaling here?
+    //Would it be better to do each operator and combine them later?
+    pub(crate) fn write_to_buffer(&self, data: &mut [f32], channels: u16) {
+        let mut lock = self.sequence.write();
+        lock.write_to_buffer(data, channels)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct SequenceDefinition {
     bpm: f32,
-    patches: Arc<Box<[PatchDefinition]>>, // The available patches
+    patches: Box<[Arc<PatchDefinition>]>, // The available patches
     patterns: Arc<[Pattern; MUSIC_CHANNEL_COUNT]>, // The notes played
-    wall_tick_time: f32,
-    ticks_per_pattern: u32,
+    ticks_per_pattern_step: u32, // How many ticks until we need to advance to the next pattern
+}
+
+impl SequenceDefinition {
+    pub fn new(
+        bpm: f32,
+        patches: Box<[Arc<PatchDefinition>]>,
+        patterns: Arc<[Pattern; MUSIC_CHANNEL_COUNT]>,
+    ) -> Self {
+        println!("generating sequence definition");
+        let beats_per_second = bpm / 60.0;
+        let beats_per_sample_rate = TARGET_SAMPLE_RATE as f32 / beats_per_second;
+        let ticks_per_beat = beats_per_sample_rate / ENTRIES_PER_BEAT as f32;
+
+        println!(
+            "beats per second: {}, beats_per_sample_rate: {}, ticks_per_beat: {} ",
+            beats_per_second, beats_per_sample_rate, ticks_per_beat
+        );
+        Self {
+            bpm,
+            patches,
+            patterns,
+            ticks_per_pattern_step: ticks_per_beat as u32,
+        }
+    }
+
+    pub fn test_pattern(sample_rate: u32) -> Self {
+        let patches = PatchDefinition::new(sample_rate);
+        let mut patterns = Vec::new();
+
+        patterns.push(Pattern {
+            entires: vec![
+                PatternEntry {
+                    patch_index: Some(0),
+                    key_state: KeyState::Pressed(25),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(25),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(21),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(21),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+            ]
+            .into_boxed_slice(),
+        });
+
+        let demo_length = patterns[0].pattern_length();
+
+        (1..MUSIC_CHANNEL_COUNT).for_each(|_| patterns.push(Pattern::empty_pattern(demo_length)));
+
+        let patterns: Box<[Pattern; MUSIC_CHANNEL_COUNT]> =
+            patterns.into_boxed_slice().try_into().unwrap();
+
+        println!("generated test pattern!");
+        Self::new(
+            120.0,
+            vec![Arc::new(patches)].into_boxed_slice(),
+            Arc::new(*patterns),
+        )
+    }
 }
 
 pub struct SequenceInstance {
@@ -33,24 +171,87 @@ impl SequenceInstance {
             pattern_index: 0,
         }
     }
+
+    //TODO: Potentially add left/right scaling here?
+    //Would it be better to do each operator and combine them later?
+    pub(crate) fn write_to_buffer(&mut self, data: &mut [f32], channels: u16) {
+        data.chunks_exact_mut(channels as usize)
+            .zip(self)
+            .for_each(|(frame, sample)| frame.iter_mut().for_each(|data| *data += sample))
+    }
 }
 
 impl Iterator for SequenceInstance {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.wall_clock += self.definition.wall_tick_time;
+        self.wall_clock += TARGET_SAMPLE_TICK_TIME;
 
         //TODO: Could optimize this with integer math?
-        if self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
+        while self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
             self.wall_clock -= TARGET_SAMPLE_TICK_TIME;
             self.clock += 1;
 
             // If we should advance the pattern...
-            if self.clock == self.definition.ticks_per_pattern {
+            if self.clock == self.definition.ticks_per_pattern_step {
+                println!("advancing the pattern");
                 self.clock = 0;
-                self.pattern_index += 1;
+
+                // Wrap around if too long
+                if self.pattern_index == self.definition.patterns[0].pattern_length() {
+                    self.pattern_index = 0;
+                }
+
                 // TODO: Read patterns and adjust accordingly
+                self.definition
+                    .patterns
+                    .iter()
+                    .enumerate()
+                    .for_each(|(channel, pattern)| {
+                        let pattern = &pattern.entires[self.pattern_index];
+
+                        match (pattern.patch_index, self.output[channel].as_ref()) {
+                            (Some(new_patch_index), Some(current_patch)) => {
+                                if !Arc::ptr_eq(
+                                    &current_patch.definition,
+                                    &self.definition.patches[new_patch_index],
+                                ) {
+                                    self.output[channel] = Some(PatchInstance::new(
+                                        self.definition.patches[new_patch_index].clone(),
+                                        0.0,
+                                    ));
+                                } else {
+                                    println!("SAME PATCH, NO CHANGE!");
+                                }
+                            }
+                            (Some(new_patch_index), None) => {
+                                self.output[channel] = Some(PatchInstance::new(
+                                    self.definition.patches[new_patch_index].clone(),
+                                    0.0,
+                                ));
+                            }
+                            _ => (),
+                        }
+
+                        // Play the key
+                        if let Some(ref mut output_patch) = self.output[channel] {
+                            match pattern.key_state {
+                                KeyState::Released => output_patch.set_active(false),
+                                KeyState::Pressed(index) => {
+                                    output_patch.set_active(false);
+                                    output_patch.set_frequency(notes::index_to_frequency(index));
+                                    output_patch.set_active(true);
+                                }
+                                KeyState::Held => (),
+                                KeyState::Slide(index) => {
+                                    output_patch.set_frequency(notes::index_to_frequency(index));
+                                }
+                            }
+                        }
+                    });
+
+                //Advance the pattern
+                self.pattern_index += 1;
             }
 
             // Produce sound

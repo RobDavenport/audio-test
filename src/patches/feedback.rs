@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FeedbackLevel {
     Zero,
     One,
