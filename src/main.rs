@@ -29,7 +29,7 @@ pub const TARGET_SAMPLE_RATE: u32 = 48_000; //48khz
 //pub const TARGET_SAMPLE_RATE: u32 = 2048;
 
 pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
-const GRAPH_WINDOW_MULTIPLIER: f32 = 2.0; // How many samples to store
+const GRAPH_WINDOW_MULTIPLIER: f32 = 1.5; // How many samples to store
 const GRAPH_X: f32 = 1.0f32 / GRAPH_WINDOW_MULTIPLIER;
 
 fn window_conf() -> Conf {

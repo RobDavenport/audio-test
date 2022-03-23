@@ -65,32 +65,32 @@ impl PatchDefinition {
             // ],
             operators: [
                 Arc::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::One,
-                    detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(105, 135, 140, 250, 20, 50)),
-                }),
-                Arc::new(OperatorDefinition {
                     waveform: Waveform::QuarterSine,
                     frequency_multiplier: FrequencyMultiplier::Two,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(225, 135, 140, 250, 20, 200)),
+                    envelope: Arc::new(EnvelopeDefinition::new(255, 255, 5, 25, 70, 90)),
                 }),
                 Arc::new(OperatorDefinition {
                     waveform: Waveform::CamelSine,
-                    frequency_multiplier: FrequencyMultiplier::Two,
+                    frequency_multiplier: FrequencyMultiplier::OneHalf,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(220, 235, 140, 250, 040, 080)),
+                    envelope: Arc::new(EnvelopeDefinition::new(190, 252, 010, 250, 40, 110)),
+                }),
+                Arc::new(OperatorDefinition {
+                    waveform: Waveform::AlternatingSine,
+                    frequency_multiplier: FrequencyMultiplier::OneFourth,
+                    detune: 0,
+                    envelope: Arc::new(EnvelopeDefinition::new(235, 205, 040, 252, 50, 130)),
                 }),
                 Arc::new(OperatorDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier::One,
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(255, 249, 100, 240, 100, 120)),
+                    envelope: Arc::new(EnvelopeDefinition::new(255, 115, 25, 240, 0, 130)),
                 }),
             ],
             algorithm: Algorithm::One,
-            feedback: FeedbackLevel::Nine,
+            feedback: FeedbackLevel::Zero,
         }
     }
 }
