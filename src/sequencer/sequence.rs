@@ -73,6 +73,14 @@ impl SequenceDefinition {
                 },
                 PatternEntry {
                     patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
                     key_state: KeyState::Released,
                 },
                 PatternEntry {
@@ -81,6 +89,30 @@ impl SequenceDefinition {
                 },
                 PatternEntry {
                     patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(21),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
                     key_state: KeyState::Released,
                 },
                 PatternEntry {
@@ -93,11 +125,63 @@ impl SequenceDefinition {
                 },
                 PatternEntry {
                     patch_index: None,
-                    key_state: KeyState::Pressed(21),
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
                 },
                 PatternEntry {
                     patch_index: None,
                     key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Released,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Pressed(23),
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
+                },
+                PatternEntry {
+                    patch_index: None,
+                    key_state: KeyState::Held,
                 },
                 PatternEntry {
                     patch_index: None,
@@ -110,26 +194,6 @@ impl SequenceDefinition {
                 PatternEntry {
                     patch_index: None,
                     key_state: KeyState::Released,
-                },
-                PatternEntry {
-                    patch_index: None,
-                    key_state: KeyState::Pressed(23),
-                },
-                PatternEntry {
-                    patch_index: None,
-                    key_state: KeyState::Released,
-                },
-                PatternEntry {
-                    patch_index: None,
-                    key_state: KeyState::Pressed(23),
-                },
-                PatternEntry {
-                    patch_index: None,
-                    key_state: KeyState::Released,
-                },
-                PatternEntry {
-                    patch_index: None,
-                    key_state: KeyState::Pressed(23),
                 },
             ]
             .into_boxed_slice(),
