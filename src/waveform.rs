@@ -4,7 +4,7 @@ use std::f32::consts::{FRAC_PI_2, PI, TAU};
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
 //TODO: Calculate a wave's period? to prevent overlooping
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Waveform {
     // Basics
     Sine,
@@ -12,7 +12,7 @@ pub enum Waveform {
     Pulse(f32),
     Saw,
     Triangle,
-    Noise,
+    //Noise,
 
     // OPL
     HalfSine,
@@ -65,9 +65,9 @@ impl Waveform {
     }
 
     /// Generates noise.
-    pub fn noise() -> Self {
-        Self::Noise
-    }
+    // pub fn noise() -> Self {
+    //     Self::Noise
+    // }
 
     /// Generates a Half Sine wave oscilator. Produces
     /// a sound if the value is >= 0
@@ -112,7 +112,7 @@ impl Waveform {
             Self::Square => square(value),
             Self::Saw => ((value % TAU) / PI) - 1.0,
             Self::Triangle => value.sin().asin() / FRAC_PI_2,
-            Self::Noise => fastrand::f32(),
+            //Self::Noise => fastrand::f32(),
             Self::HalfSine => half_sine(value),
             Self::AbsoluteSine => value.sin().abs(),
             Self::QuarterSine => quarter_sine(value),

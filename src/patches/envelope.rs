@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use parking_lot::RwLock;
+
 use super::{attenuation_table_u10, attenuation_table_u8, ATTENUATION_MAX};
 
 const SLOWEST_ATTENUATION_TICK_COUNT: u8 = 11; // Number of shifts
@@ -7,13 +9,13 @@ const HIGHEST_ATTENUATION_RATE: u16 = u8::MAX as u16 * 2;
 
 #[derive(Clone, Debug)]
 pub struct EnvelopeDefinition {
-    total_level: u8,
-    sustain_level: u8,
+    pub(crate) total_level: u8,
+    pub(crate) sustain_level: u8,
 
-    attack_rate: u8,
-    decay_attack_rate: u8,
-    decay_sustain_rate: u8,
-    release_rate: u8,
+    pub(crate) attack_rate: u8,
+    pub(crate) decay_attack_rate: u8,
+    pub(crate) decay_sustain_rate: u8,
+    pub(crate) release_rate: u8,
 }
 
 impl Default for EnvelopeDefinition {
@@ -60,7 +62,7 @@ enum EnvelopePhase {
 }
 #[derive(Clone, Debug)]
 pub struct EnvelopeInstance {
-    definition: Arc<EnvelopeDefinition>,
+    definition: Arc<RwLock<EnvelopeDefinition>>,
     current_attenuation: u16,
     attenuation_rate: u16,
     current_phase: EnvelopePhase,
@@ -69,7 +71,7 @@ pub struct EnvelopeInstance {
 }
 
 impl EnvelopeInstance {
-    pub fn new(definition: Arc<EnvelopeDefinition>) -> Self {
+    pub fn new(definition: Arc<RwLock<EnvelopeDefinition>>) -> Self {
         Self {
             definition,
             current_attenuation: ATTENUATION_MAX,
@@ -82,7 +84,7 @@ impl EnvelopeInstance {
 
     pub fn attenuation(&self) -> f32 {
         attenuation_table_u10(self.current_attenuation)
-            * attenuation_table_u8(u8::MAX - self.definition.total_level)
+            * attenuation_table_u8(u8::MAX - self.definition.read().total_level)
     }
 
     pub fn key_on(&mut self) {
@@ -156,9 +158,9 @@ impl EnvelopeInstance {
 
             match self.current_phase {
                 EnvelopePhase::Attack => {
-                    self.current_attenuation = self
-                        .current_attenuation
-                        .saturating_sub(1 * ((self.current_attenuation) / 16) + 1);
+                    let adjustment = !self.current_attenuation & (ATTENUATION_MAX - 1);
+                    let adjustment = adjustment >> 4;
+                    self.current_attenuation = self.current_attenuation.saturating_sub(adjustment);
 
                     if self.current_attenuation == 0 {
                         self.next_phase();
@@ -167,7 +169,7 @@ impl EnvelopeInstance {
                 EnvelopePhase::Decay => {
                     self.current_attenuation += 1;
 
-                    if self.current_attenuation >= self.definition.sustain_level as u16 {
+                    if self.current_attenuation >= self.definition.read().sustain_level as u16 {
                         self.next_phase();
                     }
                 }
@@ -179,40 +181,40 @@ impl EnvelopeInstance {
     }
 
     pub(crate) fn calculate_attack_rate(&self) -> u16 {
-        if self.definition.attack_rate == 0 {
+        if self.definition.read().attack_rate == 0 {
             return 0;
         } else {
-            (self.definition.attack_rate as u16) * 2
+            (self.definition.read().attack_rate as u16) * 2
         }
     }
 
     pub(crate) fn calculate_decay_rate(&self) -> u16 {
-        if self.definition.decay_attack_rate == 0 {
+        if self.definition.read().decay_attack_rate == 0 {
             return 0;
         } else {
-            (self.definition.decay_attack_rate as u16) * 2
+            (self.definition.read().decay_attack_rate as u16) * 2
         }
     }
 
     pub(crate) fn calculate_sustain_rate(&self) -> u16 {
-        if self.definition.decay_sustain_rate == 0 {
+        if self.definition.read().decay_sustain_rate == 0 {
             return 0;
         } else {
-            (self.definition.decay_sustain_rate as u16) * 2
+            (self.definition.read().decay_sustain_rate as u16) * 2
         }
     }
 
     pub(crate) fn calculate_release_rate(&self) -> u16 {
-        if self.definition.release_rate == 0 {
+        if self.definition.read().release_rate == 0 {
             return 0;
         } else {
-            (self.definition.release_rate as u16) * 2
+            (self.definition.read().release_rate as u16) * 2
         }
     }
 }
 
 impl Default for EnvelopeInstance {
     fn default() -> Self {
-        Self::new(Arc::new(EnvelopeDefinition::default()))
+        Self::new(Arc::new(RwLock::new(EnvelopeDefinition::default())))
     }
 }

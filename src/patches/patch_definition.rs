@@ -1,5 +1,7 @@
 use std::{mem::MaybeUninit, sync::Arc};
 
+use parking_lot::RwLock;
+
 use super::{
     Algorithm, EnvelopeDefinition, EnvelopeInstance, FeedbackLevel, FrequencyMultiplier,
     OperatorDefinition, OperatorInstance, OPERATOR_COUNT,
@@ -8,7 +10,7 @@ use crate::Waveform;
 
 #[derive(Clone, Debug)]
 pub struct PatchDefinition {
-    pub(crate) operators: [Arc<OperatorDefinition>; OPERATOR_COUNT],
+    pub(crate) operators: [Arc<RwLock<OperatorDefinition>>; OPERATOR_COUNT],
     pub(crate) algorithm: Algorithm,
     pub(crate) feedback: FeedbackLevel,
     pub(crate) wall_tick_time: f32,
@@ -25,7 +27,7 @@ impl PatchDefinition {
             .for_each(|(source, target)| {
                 target.write(OperatorInstance {
                     definition: source.clone(),
-                    envelope: EnvelopeInstance::new(source.envelope.clone()),
+                    envelope: EnvelopeInstance::new(source.read().envelope.clone()),
                 });
             });
 
@@ -38,30 +40,38 @@ impl PatchDefinition {
         Self {
             wall_tick_time: 1.0 / sample_rate as f32,
             operators: [
-                Arc::new(OperatorDefinition {
+                Arc::new(RwLock::new(OperatorDefinition {
                     waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    frequency_multiplier: FrequencyMultiplier(4),
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(205, 21, 7, 0, 170, 170)),
-                }),
-                Arc::new(OperatorDefinition {
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
+                        205, 21, 7, 0, 170, 170,
+                    ))),
+                })),
+                Arc::new(RwLock::new(OperatorDefinition {
                     waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    frequency_multiplier: FrequencyMultiplier(4),
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(125, 255, 0, 0, 80, 80)),
-                }),
-                Arc::new(OperatorDefinition {
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
+                        125, 255, 0, 0, 80, 80,
+                    ))),
+                })),
+                Arc::new(RwLock::new(OperatorDefinition {
                     waveform: Waveform::Saw,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    frequency_multiplier: FrequencyMultiplier(4),
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(215, 255, 220, 0, 0, 0)),
-                }),
-                Arc::new(OperatorDefinition {
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
+                        215, 255, 220, 0, 0, 0,
+                    ))),
+                })),
+                Arc::new(RwLock::new(OperatorDefinition {
                     waveform: Waveform::CamelSine,
-                    frequency_multiplier: FrequencyMultiplier::One,
+                    frequency_multiplier: FrequencyMultiplier(4),
                     detune: 0,
-                    envelope: Arc::new(EnvelopeDefinition::new(255, 255, 50, 0, 129, 129)),
-                }),
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
+                        255, 255, 50, 0, 129, 129,
+                    ))),
+                })),
             ],
             // operators: [
             //     Arc::new(OperatorDefinition {
@@ -89,8 +99,8 @@ impl PatchDefinition {
             //         envelope: Arc::new(EnvelopeDefinition::new(255, 195, 25, 220, 152, 180)),
             //     }),
             // ],
-            algorithm: Algorithm::One,
-            feedback: FeedbackLevel::Zero,
+            algorithm: Algorithm(0),
+            feedback: FeedbackLevel(0),
         }
     }
 }

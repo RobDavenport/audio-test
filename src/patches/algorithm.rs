@@ -7,21 +7,12 @@ pub enum ModulatedBy {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub enum Algorithm {
-    Zero,
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-}
+pub struct Algorithm(pub u8);
 
 impl Algorithm {
     pub fn get_definition(&self) -> &'static AlgorithmDefinition {
-        match self {
-            Algorithm::Zero => &AlgorithmDefinition {
+        match self.0 {
+            0 => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
                     ModulatedBy::Single(0),
@@ -29,7 +20,7 @@ impl Algorithm {
                     ModulatedBy::Single(2),
                 ],
             },
-            Algorithm::One => &AlgorithmDefinition {
+            1 => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
                     ModulatedBy::None,
@@ -37,7 +28,7 @@ impl Algorithm {
                     ModulatedBy::Single(2),
                 ],
             },
-            Algorithm::Two => &AlgorithmDefinition {
+            2 => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
                     ModulatedBy::None,
@@ -45,7 +36,7 @@ impl Algorithm {
                     ModulatedBy::Single(2),
                 ],
             },
-            Algorithm::Three => &AlgorithmDefinition {
+            3 => &AlgorithmDefinition {
                 carriers: [false, false, false, true],
                 modulators: [
                     ModulatedBy::Single(0),
@@ -53,7 +44,7 @@ impl Algorithm {
                     ModulatedBy::Double(1, 2),
                 ],
             },
-            Algorithm::Four => &AlgorithmDefinition {
+            4 => &AlgorithmDefinition {
                 carriers: [false, true, false, true],
                 modulators: [
                     ModulatedBy::Single(0),
@@ -61,7 +52,7 @@ impl Algorithm {
                     ModulatedBy::Single(3),
                 ],
             },
-            Algorithm::Five => &AlgorithmDefinition {
+            5 => &AlgorithmDefinition {
                 carriers: [false, true, true, true],
                 modulators: [
                     ModulatedBy::Single(0),
@@ -69,21 +60,22 @@ impl Algorithm {
                     ModulatedBy::Single(0),
                 ],
             },
-            Algorithm::Six => &AlgorithmDefinition {
+            6 => &AlgorithmDefinition {
                 carriers: [false, true, true, true],
                 modulators: [ModulatedBy::Single(0), ModulatedBy::None, ModulatedBy::None],
             },
-            Algorithm::Seven => &AlgorithmDefinition {
+            7 => &AlgorithmDefinition {
                 carriers: [true, true, true, true],
                 modulators: [ModulatedBy::None, ModulatedBy::None, ModulatedBy::None],
             },
+            _ => panic!("invalid algorithm value"),
         }
     }
 }
 
 impl Default for Algorithm {
     fn default() -> Self {
-        Self::One
+        Self(0)
     }
 }
 

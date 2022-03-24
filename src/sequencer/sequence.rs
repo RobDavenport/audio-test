@@ -33,7 +33,7 @@ impl SequenceInstanceHandle {
 #[derive(Clone, Debug)]
 pub struct SequenceDefinition {
     bpm: f32,
-    patches: Box<[Arc<PatchDefinition>]>, // The available patches
+    patches: Box<[Arc<RwLock<PatchDefinition>>]>, // The available patches
     patterns: Arc<[Pattern; MUSIC_CHANNEL_COUNT]>, // The notes played
     ticks_per_pattern_step: u32, // How many ticks until we need to advance to the next pattern
 }
@@ -41,7 +41,7 @@ pub struct SequenceDefinition {
 impl SequenceDefinition {
     pub fn new(
         bpm: f32,
-        patches: Box<[Arc<PatchDefinition>]>,
+        patches: Box<[Arc<RwLock<PatchDefinition>>]>,
         patterns: Arc<[Pattern; MUSIC_CHANNEL_COUNT]>,
     ) -> Self {
         println!("generating sequence definition");
@@ -209,14 +209,14 @@ impl SequenceDefinition {
         println!("generated test pattern!");
         Self::new(
             120.0,
-            vec![Arc::new(patches)].into_boxed_slice(),
+            vec![Arc::new(RwLock::new(patches))].into_boxed_slice(),
             Arc::new(*patterns),
         )
     }
 }
 
 pub struct SequenceInstance {
-    definition: Arc<SequenceDefinition>,
+    definition: Arc<RwLock<SequenceDefinition>>,
     output: [Option<PatchInstance>; MUSIC_CHANNEL_COUNT],
     wall_clock: f32,
     last_output: f32,
@@ -225,7 +225,7 @@ pub struct SequenceInstance {
 }
 
 impl SequenceInstance {
-    pub fn new(definition: Arc<SequenceDefinition>) -> Self {
+    pub fn new(definition: Arc<RwLock<SequenceDefinition>>) -> Self {
         Self {
             definition,
             output: empty_outputs(),
@@ -250,6 +250,7 @@ impl Iterator for SequenceInstance {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.wall_clock += TARGET_SAMPLE_TICK_TIME;
+        let definition = self.definition.read();
 
         //TODO: Could optimize this with integer math?
         while self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
@@ -257,17 +258,17 @@ impl Iterator for SequenceInstance {
             self.clock += 1;
 
             // If we should advance the pattern...
-            if self.clock == self.definition.ticks_per_pattern_step {
+            if self.clock == definition.ticks_per_pattern_step {
                 println!("advancing the pattern");
                 self.clock = 0;
 
                 // Wrap around if too long
-                if self.pattern_index == self.definition.patterns[0].pattern_length() {
+                if self.pattern_index == definition.patterns[0].pattern_length() {
                     self.pattern_index = 0;
                 }
 
                 // TODO: Read patterns and adjust accordingly
-                self.definition
+                definition
                     .patterns
                     .iter()
                     .enumerate()
@@ -278,10 +279,10 @@ impl Iterator for SequenceInstance {
                             (Some(new_patch_index), Some(current_patch)) => {
                                 if !Arc::ptr_eq(
                                     &current_patch.definition,
-                                    &self.definition.patches[new_patch_index],
+                                    &definition.patches[new_patch_index],
                                 ) {
                                     self.output[channel] = Some(PatchInstance::new(
-                                        self.definition.patches[new_patch_index].clone(),
+                                        definition.patches[new_patch_index].clone(),
                                         0.0,
                                     ));
                                 } else {
@@ -290,7 +291,7 @@ impl Iterator for SequenceInstance {
                             }
                             (Some(new_patch_index), None) => {
                                 self.output[channel] = Some(PatchInstance::new(
-                                    self.definition.patches[new_patch_index].clone(),
+                                    definition.patches[new_patch_index].clone(),
                                     0.0,
                                 ));
                             }

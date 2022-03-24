@@ -1,3 +1,4 @@
+mod gui;
 mod notes;
 mod patches;
 mod sequencer;
@@ -9,9 +10,18 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     StreamConfig,
 };
-use macroquad::prelude::*;
+use gui::framework::Framework;
+// use macroquad::prelude::*;
 use parking_lot::RwLock;
+use pixels::{Pixels, SurfaceTexture};
 use sequencer::{SequenceInstance, SequenceInstanceHandle};
+use winit::{
+    dpi::LogicalSize,
+    event::{Event, VirtualKeyCode},
+    event_loop::{ControlFlow, EventLoop},
+    window::{Window, WindowBuilder},
+};
+use winit_input_helper::WinitInputHelper;
 
 use crate::patches::*;
 use crate::sequencer::SequenceDefinition;
@@ -32,18 +42,10 @@ pub const TARGET_SAMPLE_TICK_TIME: f32 = 1.0 / TARGET_SAMPLE_RATE as f32;
 const GRAPH_WINDOW_MULTIPLIER: f32 = 1.5; // How many samples to store
 const GRAPH_X: f32 = 1.0f32 / GRAPH_WINDOW_MULTIPLIER;
 
-fn window_conf() -> Conf {
-    Conf {
-        window_title: "Audio Test".to_owned(),
-        fullscreen: false,
-        window_width: 1600,
-        window_height: 900,
-        ..Default::default()
-    }
-}
+const WIDTH: u32 = 1600;
+const HEIGHT: u32 = 900;
 
-#[macroquad::main(window_conf)]
-async fn main() {
+fn main() {
     notes::generate();
     patches::init_attenuation_table();
 
@@ -68,41 +70,46 @@ async fn main() {
     println!("Change waveform by pressing numbers 0 through 9.");
     println!("Play notes by pressing keys from Z to M and ,./ lshift.");
 
+    let sound = Arc::new(RwLock::new(PatchDefinition::new(sample_rate.0)));
+    let event_loop = EventLoop::new();
+    let window = init_window(&event_loop);
+    let (mut pixels, mut framework) = init_pixels(&window, sound.clone());
+    let mut input = WinitInputHelper::new();
+
     let mut handles = Vec::new();
 
     let mut keys = [
-        (KeyCode::LeftShift),
-        (KeyCode::Z),
-        (KeyCode::S),
-        (KeyCode::X),
-        (KeyCode::D),
-        (KeyCode::C),
-        (KeyCode::V),
-        (KeyCode::G),
-        (KeyCode::B),
-        (KeyCode::H),
-        (KeyCode::N),
-        (KeyCode::J),
-        (KeyCode::M),
-        (KeyCode::Comma),
-        (KeyCode::L),
-        (KeyCode::Period),
-        (KeyCode::Semicolon),
-        (KeyCode::Slash),
-        (KeyCode::Apostrophe),
+        (VirtualKeyCode::LShift),
+        (VirtualKeyCode::Z),
+        (VirtualKeyCode::S),
+        (VirtualKeyCode::X),
+        (VirtualKeyCode::D),
+        (VirtualKeyCode::C),
+        (VirtualKeyCode::V),
+        (VirtualKeyCode::G),
+        (VirtualKeyCode::B),
+        (VirtualKeyCode::H),
+        (VirtualKeyCode::N),
+        (VirtualKeyCode::J),
+        (VirtualKeyCode::M),
+        (VirtualKeyCode::Comma),
+        (VirtualKeyCode::L),
+        (VirtualKeyCode::Period),
+        (VirtualKeyCode::Semicolon),
+        (VirtualKeyCode::Slash),
+        (VirtualKeyCode::Apostrophe),
     ]
     .iter()
     .enumerate()
     .map(|(index, code)| {
-        let sound = PatchDefinition::new(sample_rate.0);
-        let sound_handle = PatchInstanceHandle::new(PatchInstance::new(Arc::new(sound), 0.0));
+        let sound_handle = PatchInstanceHandle::new(PatchInstance::new(sound.clone(), 0.0));
         sound_handle.set_frequency(notes::index_to_frequency(index + 35)); //35
         handles.push(sound_handle.clone());
         (code, sound_handle)
     })
     .collect::<Vec<_>>();
 
-    let graph = (0..(screen_width() * GRAPH_WINDOW_MULTIPLIER) as usize)
+    let graph = (0..(WIDTH as f32 * GRAPH_WINDOW_MULTIPLIER) as usize)
         .map(|_| 0.0f32)
         .collect::<VecDeque<f32>>();
 
@@ -110,7 +117,7 @@ async fn main() {
     let graph_clone = graph.clone();
 
     let sequence = SequenceDefinition::test_pattern(sample_rate.0);
-    let sequence_instance = SequenceInstance::new(Arc::new(sequence));
+    let sequence_instance = SequenceInstance::new(Arc::new(RwLock::new(sequence)));
     let sequence_handle = SequenceInstanceHandle::new(sequence_instance);
 
     let _sound_thread = std::thread::spawn(move || {
@@ -139,33 +146,72 @@ async fn main() {
         }
     });
 
-    loop {
-        let screen_height = screen_height();
-        let mid_screen = screen_height / 2.0;
-
-        keys.iter_mut().for_each(|(key, handle)| {
-            if is_key_pressed(**key) {
-                handle.set_active(true);
-            } else if is_key_released(**key) {
-                handle.set_active(false);
+    event_loop.run(move |event, _, control_flow| {
+        // Handle input events
+        if input.update(&event) {
+            // Close events
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
             }
-        });
 
-        let read = graph.read();
-        (0..read.len() as usize - 1).for_each(|index| {
-            draw_line(
-                index as f32 * GRAPH_X,
-                mid_screen - read[index] * 60.0,
-                (index as f32 * GRAPH_X) + GRAPH_X,
-                mid_screen - read[index + 1] * 60.0,
-                1.0,
-                GREEN,
-            )
-        });
-        drop(read);
+            keys.iter_mut().for_each(|(key, handle)| {
+                if input.key_pressed(**key) {
+                    handle.set_active(true);
+                } else if input.key_released(**key) {
+                    handle.set_active(false);
+                }
+            });
 
-        next_frame().await
-    }
+            // Update the scale factor
+            if let Some(scale_factor) = input.scale_factor() {
+                framework.scale_factor(scale_factor);
+            }
+
+            // Resize the window
+            if let Some(size) = input.window_resized() {
+                pixels.resize_surface(size.width, size.height);
+                framework.resize(size.width, size.height);
+            }
+
+            // Update internal state and request a redraw
+            window.request_redraw();
+        }
+
+        match event {
+            Event::WindowEvent { event, .. } => {
+                // Update egui inputs
+                framework.handle_event(&event);
+            }
+            // Draw the current frame
+            Event::RedrawRequested(_) => {
+                // Draw the world
+
+                // Prepare egui
+                framework.prepare(&window);
+
+                // Render everything together
+                let render_result = pixels.render_with(|encoder, render_target, context| {
+                    // Render the world texture
+                    context.scaling_renderer.render(encoder, render_target);
+
+                    // Render egui
+                    framework.render(encoder, render_target, context)?;
+
+                    Ok(())
+                });
+
+                // Basic error handling
+                if render_result
+                    .map_err(|e| println!("pixels.render() failed: {}", e))
+                    .is_err()
+                {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+            _ => (),
+        }
+    });
 }
 
 fn sequence_callback(data: &mut [f32], channels: u16, sequence: SequenceInstanceHandle) {
@@ -189,3 +235,48 @@ fn data_callback(
         .step_by(2)
         .for_each(|amplitude| graph.push_back(*amplitude));
 }
+
+fn init_window<T>(event_loop: &EventLoop<T>) -> Window {
+    let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+    WindowBuilder::new()
+        .with_title("Audio Test")
+        .with_inner_size(size)
+        .with_min_inner_size(size)
+        .build(event_loop)
+        .unwrap()
+}
+
+fn init_pixels(
+    window: &Window,
+    patch_definition: Arc<RwLock<PatchDefinition>>,
+) -> (Pixels, Framework) {
+    let window_size = window.inner_size();
+    let scale_factor = window.scale_factor() as f32;
+    let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+    let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap();
+    let framework = Framework::new(
+        window_size.width,
+        window_size.height,
+        scale_factor,
+        &pixels,
+        patch_definition,
+    );
+
+    (pixels, framework)
+}
+
+// OLD CODE FOR DRAWING THE GRAPH:
+//     let screen_height = HEIGHT;
+//     let mid_screen = screen_height / 2;
+//     let read = graph.read();
+//     (0..read.len() as usize - 1).for_each(|index| {
+//         draw_line(
+//             index as f32 * GRAPH_X,
+//             mid_screen - read[index] * 60.0,
+//             (index as f32 * GRAPH_X) + GRAPH_X,
+//             mid_screen - read[index + 1] * 60.0,
+//             1.0,
+//             GREEN,
+//         )
+//     });
+//     drop(read);

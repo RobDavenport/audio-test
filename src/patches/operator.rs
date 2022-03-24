@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use parking_lot::RwLock;
+
 use crate::Waveform;
 
 use super::{EnvelopeDefinition, EnvelopeInstance};
@@ -9,68 +11,73 @@ pub struct OperatorDefinition {
     pub(crate) waveform: Waveform,
     pub(crate) frequency_multiplier: FrequencyMultiplier,
     pub(crate) detune: i8,
-    pub(crate) envelope: Arc<EnvelopeDefinition>,
+    pub(crate) envelope: Arc<RwLock<EnvelopeDefinition>>,
 }
 
 pub struct OperatorInstance {
-    pub(crate) definition: Arc<OperatorDefinition>,
+    pub(crate) definition: Arc<RwLock<OperatorDefinition>>,
     pub(crate) envelope: EnvelopeInstance,
 }
 
 impl OperatorInstance {
     pub fn func(&self, phase: f32) -> f32 {
-        self.definition
+        let definition = self.definition.read();
+        definition
             .waveform
-            .func(self.definition.frequency_multiplier.multiply(phase))
+            .func(definition.frequency_multiplier.multiply(phase))
             * self.envelope.attenuation()
     }
 }
 
+// #[derive(Clone, Debug)]
+// pub enum FrequencyMultiplier {
+//     OneSixteenth,
+//     OneEigth,
+//     OneFourth,
+//     OneHalf,
+//     One,
+//     Two,
+//     Three,
+//     Four,
+//     Five,
+//     Six,
+//     Seven,
+//     Eight,
+//     Nine,
+//     Ten,
+//     Eleven,
+//     Twelve,
+// }
+
 #[derive(Clone, Debug)]
-pub enum FrequencyMultiplier {
-    OneSixteenth,
-    OneEigth,
-    OneFourth,
-    OneHalf,
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Eleven,
-    Twelve,
-}
+pub struct FrequencyMultiplier(pub u8);
 
 impl Default for FrequencyMultiplier {
     fn default() -> Self {
-        Self::One
+        Self(4)
     }
 }
 
 impl FrequencyMultiplier {
     fn multiply(&self, phase: f32) -> f32 {
-        match self {
-            FrequencyMultiplier::OneSixteenth => phase / 16.0,
-            FrequencyMultiplier::OneEigth => phase / 8.0,
-            FrequencyMultiplier::OneFourth => phase / 4.0,
-            FrequencyMultiplier::OneHalf => phase / 2.0,
-            FrequencyMultiplier::One => phase,
-            FrequencyMultiplier::Two => phase * 2.0,
-            FrequencyMultiplier::Three => phase * 3.0,
-            FrequencyMultiplier::Four => phase * 4.0,
-            FrequencyMultiplier::Five => phase * 5.0,
-            FrequencyMultiplier::Six => phase * 6.0,
-            FrequencyMultiplier::Seven => phase * 7.0,
-            FrequencyMultiplier::Eight => phase * 8.0,
-            FrequencyMultiplier::Nine => phase * 9.0,
-            FrequencyMultiplier::Ten => phase * 10.0,
-            FrequencyMultiplier::Eleven => phase * 11.0,
-            FrequencyMultiplier::Twelve => phase * 12.0,
+        match self.0 {
+            0 => phase / 16.0,
+            1 => phase / 8.0,
+            2 => phase / 4.0,
+            3 => phase / 2.0,
+            4 => phase,
+            5 => phase * 2.0,
+            6 => phase * 3.0,
+            7 => phase * 4.0,
+            8 => phase * 5.0,
+            9 => phase * 6.0,
+            10 => phase * 7.0,
+            11 => phase * 8.0,
+            12 => phase * 9.0,
+            13 => phase * 10.0,
+            14 => phase * 11.0,
+            15 => phase * 12.0,
+            _ => panic!("invalid frequency multiplier value"),
         }
     }
 }

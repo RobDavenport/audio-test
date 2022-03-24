@@ -36,7 +36,7 @@ impl PatchInstanceHandle {
 }
 
 pub struct PatchInstance {
-    pub(crate) definition: Arc<PatchDefinition>,
+    pub(crate) definition: Arc<RwLock<PatchDefinition>>,
     pub(crate) operators: [OperatorInstance; OPERATOR_COUNT],
     pub(crate) active: bool,
     pub(crate) clock: f32,
@@ -47,9 +47,10 @@ pub struct PatchInstance {
 }
 
 impl PatchInstance {
-    pub fn new(definition: Arc<PatchDefinition>, base_frequency: f32) -> Self {
+    pub fn new(definition: Arc<RwLock<PatchDefinition>>, base_frequency: f32) -> Self {
+        let operators = definition.read().generate_new_operators();
         Self {
-            operators: definition.generate_new_operators(),
+            operators,
             definition,
             active: false,
             clock: 0.0,
@@ -64,12 +65,14 @@ impl PatchInstance {
         let mut outputs = [0.0f32; 4];
         let mut final_output = 0.0f32;
 
-        let algorithm = self.definition.algorithm.get_definition();
+        let definition = self.definition.read();
+
+        let algorithm = definition.algorithm.get_definition();
 
         // 1st Operator is always feedback
         outputs[0] = self.operators[0].func(
             (((self.prev_feedback1 + self.prev_feedback2) / 2.0)
-                * self.definition.feedback.as_multiplier())
+                * definition.feedback.as_multiplier())
                 + phase,
         );
 
@@ -157,7 +160,7 @@ impl Iterator for PatchInstance {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.wall_clock += self.definition.wall_tick_time;
+        self.wall_clock += self.definition.read().wall_tick_time;
 
         //TODO: Could optimize this with integer math?
         while self.wall_clock >= TARGET_SAMPLE_TICK_TIME {
