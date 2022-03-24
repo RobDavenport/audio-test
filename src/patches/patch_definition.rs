@@ -44,32 +44,26 @@ impl PatchDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier(4),
                     detune: 0,
-                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
-                        205, 21, 7, 0, 170, 170,
-                    ))),
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::default())),
+                })),
+                Arc::new(RwLock::new(OperatorDefinition {
+                    waveform: Waveform::Sine,
+                    frequency_multiplier: FrequencyMultiplier(4),
+                    detune: 0,
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::default())),
+                })),
+                Arc::new(RwLock::new(OperatorDefinition {
+                    waveform: Waveform::Sine,
+                    frequency_multiplier: FrequencyMultiplier(4),
+                    detune: 0,
+                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::default())),
                 })),
                 Arc::new(RwLock::new(OperatorDefinition {
                     waveform: Waveform::Sine,
                     frequency_multiplier: FrequencyMultiplier(4),
                     detune: 0,
                     envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
-                        125, 255, 0, 0, 80, 80,
-                    ))),
-                })),
-                Arc::new(RwLock::new(OperatorDefinition {
-                    waveform: Waveform::Saw,
-                    frequency_multiplier: FrequencyMultiplier(4),
-                    detune: 0,
-                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
-                        215, 255, 220, 0, 0, 0,
-                    ))),
-                })),
-                Arc::new(RwLock::new(OperatorDefinition {
-                    waveform: Waveform::CamelSine,
-                    frequency_multiplier: FrequencyMultiplier(4),
-                    detune: 0,
-                    envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
-                        255, 255, 50, 0, 129, 129,
+                        255, 255, 0, 255, 0, 255,
                     ))),
                 })),
             ],

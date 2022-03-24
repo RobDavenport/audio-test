@@ -24,10 +24,10 @@ impl Default for EnvelopeDefinition {
             total_level: 0,
             sustain_level: u8::MAX,
 
-            attack_rate: 0,
+            attack_rate: u8::MAX,
             decay_attack_rate: 0,
             decay_sustain_rate: 0,
-            release_rate: 0,
+            release_rate: u8::MAX,
         }
     }
 }
@@ -91,7 +91,6 @@ impl EnvelopeInstance {
         self.current_phase = EnvelopePhase::Attack;
         self.attenuation_rate = self.calculate_attack_rate();
         self.calculate_cycles_per_tick();
-        println!("attenuation rate: {}", self.attenuation_rate);
     }
 
     pub fn key_off(&mut self) {
@@ -101,7 +100,6 @@ impl EnvelopeInstance {
     }
 
     fn next_phase(&mut self) {
-        println!("next phase! curr: {:?}", self.current_phase);
         self.current_phase = match self.current_phase {
             EnvelopePhase::Attack => {
                 self.attenuation_rate = self.calculate_decay_rate();
@@ -122,18 +120,12 @@ impl EnvelopeInstance {
             }
             EnvelopePhase::Release => EnvelopePhase::Release,
         };
-        println!("next phase!: next {:?}", self.current_phase);
-        println!("next atten rate!: next {:?}", self.attenuation_rate);
     }
 
     fn calculate_cycles_per_tick(&mut self) {
         let scale = self.attenuation_rate
             / (HIGHEST_ATTENUATION_RATE / SLOWEST_ATTENUATION_TICK_COUNT as u16);
         self.cycles_per_attenuation_tick = SLOWEST_ATTENUATION_TICK_COUNT - scale as u8;
-        println!(
-            "scale: {}, final: {}",
-            scale, self.cycles_per_attenuation_tick
-        );
     }
 
     pub(crate) fn tick(&mut self) {
@@ -152,15 +144,10 @@ impl EnvelopeInstance {
             if self.attenuation_rate == 0 {
                 return;
             }
-            // if self.total_level != 0 {
-            //     println!("att: {}, {:?}, rate: {}", self.current_attenuation, self.current_phase, self.attenuation_rate)
-            // }
 
             match self.current_phase {
                 EnvelopePhase::Attack => {
-                    let adjustment = !self.current_attenuation & (ATTENUATION_MAX - 1);
-                    let adjustment = adjustment >> 4;
-                    self.current_attenuation = self.current_attenuation.saturating_sub(adjustment);
+                    self.current_attenuation = self.current_attenuation.saturating_sub(1);
 
                     if self.current_attenuation == 0 {
                         self.next_phase();
