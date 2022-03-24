@@ -100,25 +100,23 @@ impl EnvelopeInstance {
     }
 
     fn next_phase(&mut self) {
-        self.current_phase = match self.current_phase {
+        match self.current_phase {
             EnvelopePhase::Attack => {
                 self.attenuation_rate = self.calculate_decay_rate();
+                self.current_phase = EnvelopePhase::Decay;
                 self.calculate_cycles_per_tick();
-                EnvelopePhase::Decay
             }
             EnvelopePhase::Decay => {
                 self.attenuation_rate = self.calculate_sustain_rate();
+                self.current_phase = EnvelopePhase::Sustain;
                 self.calculate_cycles_per_tick();
-
-                EnvelopePhase::Sustain
             }
             EnvelopePhase::Sustain => {
                 self.attenuation_rate = self.calculate_release_rate();
+                self.current_phase = EnvelopePhase::Release;
                 self.calculate_cycles_per_tick();
-
-                EnvelopePhase::Release
             }
-            EnvelopePhase::Release => EnvelopePhase::Release,
+            EnvelopePhase::Release => (),
         };
     }
 
