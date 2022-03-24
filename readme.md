@@ -1,5 +1,10 @@
 TODO:
 1. GUI for editing patches / testing
+    - Make it cleaner
+    - Display the waveform
+1. Fix envelope scaling
+    - Exponential Attack
+    - Decay phases are (incorrectly) basically equal
 1. Save / Loading patches
 1. Detune
 1. Effects

@@ -179,7 +179,7 @@ impl Gui {
         });
 
         ui.add(
-            egui::Slider::new(&mut operator.frequency_multiplier.0, 0..=16)
+            egui::Slider::new(&mut operator.frequency_multiplier.0, 0..=15)
                 .text("Frequency Multiuplier"),
         );
 
@@ -189,32 +189,38 @@ impl Gui {
             ui.add(
                 egui::Slider::new(&mut envelope.total_level, u8::MIN..=u8::MAX)
                     .text("TL")
-                    .vertical(),
+                    .vertical()
+                    .step_by(1.0),
             );
             ui.add(
                 egui::Slider::new(&mut envelope.attack_rate, u8::MIN..=u8::MAX)
                     .text("AR")
-                    .vertical(),
+                    .vertical()
+                    .step_by(1.0),
             );
             ui.add(
                 egui::Slider::new(&mut envelope.decay_attack_rate, u8::MIN..=u8::MAX)
                     .text("D1")
-                    .vertical(),
+                    .vertical()
+                    .step_by(1.0),
             );
             ui.add(
                 egui::Slider::new(&mut envelope.sustain_level, u8::MIN..=u8::MAX)
                     .text("SL")
-                    .vertical(),
+                    .vertical()
+                    .step_by(1.0),
             );
             ui.add(
                 egui::Slider::new(&mut envelope.decay_sustain_rate, u8::MIN..=u8::MAX)
                     .text("D2")
-                    .vertical(),
+                    .vertical()
+                    .step_by(1.0),
             );
             ui.add(
                 egui::Slider::new(&mut envelope.release_rate, u8::MIN..=u8::MAX)
                     .text("RR")
-                    .vertical(),
+                    .vertical()
+                    .step_by(1.0),
             );
         });
     }
