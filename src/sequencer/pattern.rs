@@ -23,6 +23,7 @@ impl Pattern {
 
 // TODO: How to handle effects?
 // TOOD: How to handle repeat points on patterns?
+
 #[derive(Debug, Clone)]
 pub(crate) struct PatternEntry {
     pub(crate) patch_index: Option<usize>,

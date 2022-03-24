@@ -47,8 +47,6 @@ async fn main() {
     notes::generate();
     patches::init_attenuation_table();
 
-    //let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
-
     let host = cpal::default_host();
     let device = host
         .default_output_device()
