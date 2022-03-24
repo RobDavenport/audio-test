@@ -7,7 +7,7 @@ use pixels::{wgpu, PixelsContext};
 use winit::window::Window;
 
 use crate::{
-    patches::{PatchDefinition, OPERATOR_COUNT},
+    patches::{FrequencyMultiplier, PatchDefinition, OPERATOR_COUNT},
     Waveform,
 };
 
@@ -179,8 +179,11 @@ impl Gui {
         });
 
         ui.add(
-            egui::Slider::new(&mut operator.frequency_multiplier.0, 0..=15)
-                .text("Frequency Multiuplier"),
+            egui::Slider::new(
+                &mut operator.frequency_multiplier.0,
+                0..=FrequencyMultiplier::max_value(),
+            )
+            .text("Frequency Multiuplier"),
         );
 
         // Envelope

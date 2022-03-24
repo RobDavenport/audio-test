@@ -4,8 +4,7 @@ use parking_lot::RwLock;
 
 use super::{attenuation_table_u10, attenuation_table_u8, ATTENUATION_MAX};
 
-const SLOWEST_ATTENUATION_TICK_COUNT: u8 = 11; // Number of shifts
-const HIGHEST_ATTENUATION_RATE: u16 = u8::MAX as u16 * 2;
+const CYCLE_MULTIPLIER: f32 = 32.0;
 
 #[derive(Clone, Debug)]
 pub struct EnvelopeDefinition {
@@ -67,7 +66,7 @@ pub struct EnvelopeInstance {
     attenuation_rate: u16,
     current_phase: EnvelopePhase,
     clock: u16,
-    cycles_per_attenuation_tick: u8,
+    cycles_per_attenuation_tick: u16,
 }
 
 impl EnvelopeInstance {
@@ -118,31 +117,37 @@ impl EnvelopeInstance {
             }
             EnvelopePhase::Release => (),
         };
+        self.clock = 0;
     }
 
     fn calculate_cycles_per_tick(&mut self) {
-        let scale = self.attenuation_rate
-            / (HIGHEST_ATTENUATION_RATE / SLOWEST_ATTENUATION_TICK_COUNT as u16);
-        self.cycles_per_attenuation_tick = SLOWEST_ATTENUATION_TICK_COUNT - scale as u8;
+        let val = (self.attenuation_rate as f32).sqrt() * CYCLE_MULTIPLIER;
+        let val = (((u8::MAX as f32).sqrt()) * CYCLE_MULTIPLIER) - val;
+
+        self.cycles_per_attenuation_tick = val as u16;
+        if self.current_phase == EnvelopePhase::Attack {
+            println!("cycles: {}", self.cycles_per_attenuation_tick);
+        }
     }
 
     pub(crate) fn tick(&mut self) {
-        self.clock += 1;
-
-        if self.clock < 1 << self.cycles_per_attenuation_tick {
+        if self.attenuation_rate == 0 {
             return;
         }
-        self.clock -= 1 << self.cycles_per_attenuation_tick;
+
+        self.clock += 1;
+
+        if self.clock < self.cycles_per_attenuation_tick {
+            return;
+        }
+
+        self.clock = 0;
 
         if self.current_phase != EnvelopePhase::Attack
             && self.current_attenuation >= ATTENUATION_MAX
         {
             return;
         } else {
-            if self.attenuation_rate == 0 {
-                return;
-            }
-
             match self.current_phase {
                 EnvelopePhase::Attack => {
                     self.current_attenuation = self.current_attenuation.saturating_sub(1);
@@ -166,35 +171,19 @@ impl EnvelopeInstance {
     }
 
     pub(crate) fn calculate_attack_rate(&self) -> u16 {
-        if self.definition.read().attack_rate == 0 {
-            return 0;
-        } else {
-            (self.definition.read().attack_rate as u16) * 2
-        }
+        self.definition.read().attack_rate as u16
     }
 
     pub(crate) fn calculate_decay_rate(&self) -> u16 {
-        if self.definition.read().decay_attack_rate == 0 {
-            return 0;
-        } else {
-            (self.definition.read().decay_attack_rate as u16) * 2
-        }
+        self.definition.read().decay_attack_rate as u16
     }
 
     pub(crate) fn calculate_sustain_rate(&self) -> u16 {
-        if self.definition.read().decay_sustain_rate == 0 {
-            return 0;
-        } else {
-            (self.definition.read().decay_sustain_rate as u16) * 2
-        }
+        self.definition.read().decay_sustain_rate as u16
     }
 
     pub(crate) fn calculate_release_rate(&self) -> u16 {
-        if self.definition.read().release_rate == 0 {
-            return 0;
-        } else {
-            (self.definition.read().release_rate as u16) * 2
-        }
+        self.definition.read().release_rate as u16
     }
 }
 

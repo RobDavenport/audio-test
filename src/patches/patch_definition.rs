@@ -41,26 +41,26 @@ impl PatchDefinition {
             wall_tick_time: 1.0 / sample_rate as f32,
             operators: [
                 Arc::new(RwLock::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier(4),
+                    waveform: Waveform::default(),
+                    frequency_multiplier: FrequencyMultiplier::default(),
                     detune: 0,
                     envelope: Arc::new(RwLock::new(EnvelopeDefinition::default())),
                 })),
                 Arc::new(RwLock::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier(4),
+                    waveform: Waveform::default(),
+                    frequency_multiplier: FrequencyMultiplier::default(),
                     detune: 0,
                     envelope: Arc::new(RwLock::new(EnvelopeDefinition::default())),
                 })),
                 Arc::new(RwLock::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier(4),
+                    waveform: Waveform::default(),
+                    frequency_multiplier: FrequencyMultiplier::default(),
                     detune: 0,
                     envelope: Arc::new(RwLock::new(EnvelopeDefinition::default())),
                 })),
                 Arc::new(RwLock::new(OperatorDefinition {
-                    waveform: Waveform::Sine,
-                    frequency_multiplier: FrequencyMultiplier(4),
+                    waveform: Waveform::default(),
+                    frequency_multiplier: FrequencyMultiplier::default(),
                     detune: 0,
                     envelope: Arc::new(RwLock::new(EnvelopeDefinition::new(
                         255, 255, 0, 255, 0, 255,
