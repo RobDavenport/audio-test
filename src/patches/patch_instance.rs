@@ -1,4 +1,4 @@
-use std::{f32::consts::TAU, sync::Arc};
+use std::sync::Arc;
 
 use parking_lot::RwLock;
 
@@ -15,10 +15,6 @@ impl PatchInstanceHandle {
         Self {
             patch: Arc::new(RwLock::new(patch)),
         }
-    }
-
-    pub fn get_active(&self) -> bool {
-        self.patch.read().active
     }
 
     pub fn set_frequency(&self, frequency: f32) {
@@ -61,7 +57,7 @@ impl PatchInstance {
         }
     }
 
-    fn func(&mut self, phase: f32) -> f32 {
+    fn func(&mut self) -> f32 {
         let mut outputs = [0.0f32; 4];
         let mut final_output = 0.0f32;
 
@@ -71,9 +67,9 @@ impl PatchInstance {
 
         // 1st Operator is always feedback
         outputs[0] = self.operators[0].func(
-            (((self.prev_feedback1 + self.prev_feedback2) / 2.0)
-                * definition.feedback.as_multiplier())
-                + phase,
+            self.base_frequency,
+            ((self.prev_feedback1 + self.prev_feedback2) / 2.0)
+                * definition.feedback.as_multiplier(),
         );
 
         // Handle feedback
@@ -87,12 +83,12 @@ impl PatchInstance {
 
         (1..OPERATOR_COUNT).for_each(|i| {
             let result = match algorithm.modulators[i - 1] {
-                ModulatedBy::None => self.operators[i].func(phase),
+                ModulatedBy::None => self.operators[i].func(self.base_frequency, 0.0),
                 ModulatedBy::Single(modulator) => {
-                    self.operators[i].func(outputs[modulator] + phase)
+                    self.operators[i].func(self.base_frequency, outputs[modulator])
                 }
                 ModulatedBy::Double(first, second) => {
-                    self.operators[i].func(outputs[first] + outputs[second] + phase)
+                    self.operators[i].func(self.base_frequency, outputs[first] + outputs[second])
                 }
             };
 
@@ -121,14 +117,11 @@ impl PatchInstance {
     pub(crate) fn force_tick(&mut self) -> f32 {
         self.tick();
 
-        let phase = self.clock as f32 * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
-
-        self.func(phase)
+        self.func()
     }
 
     fn tick(&mut self) {
         self.clock = (self.clock + 1.0) % (TARGET_SAMPLE_RATE as f32 / self.base_frequency);
-
         self.operators
             .iter_mut()
             .for_each(|operator| operator.envelope.tick());
@@ -168,8 +161,6 @@ impl Iterator for PatchInstance {
             self.wall_clock -= TARGET_SAMPLE_TICK_TIME;
         }
 
-        let phase = self.clock * self.base_frequency * TAU / TARGET_SAMPLE_RATE as f32;
-
-        Some(self.func(phase))
+        Some(self.func())
     }
 }

@@ -28,7 +28,6 @@ use crate::sequencer::SequenceDefinition;
 
 pub use waveform::Waveform;
 
-const DUTY: f64 = 0.25;
 pub const TARGET_SAMPLE_RATE: u32 = 48_000; //48khz
 
 // Other potential target sample rates
@@ -126,10 +125,11 @@ fn main() {
                 &config,
                 move |data, _| {
                     let graph = graph_clone.clone();
-                    let sequence_handle = sequence_handle.clone();
+
                     // Reset output to zero
                     data.iter_mut().for_each(|data| *data = 0.0);
 
+                    //let sequence_handle = sequence_handle.clone();
                     //sequence_callback(data, channels, sequence_handle);
                     data_callback(data, channels, handles.as_mut_slice(), graph);
                 },

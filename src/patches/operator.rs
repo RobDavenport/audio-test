@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
-use crate::Waveform;
+use crate::{Waveform, TARGET_SAMPLE_RATE};
 
 use super::{EnvelopeDefinition, EnvelopeInstance};
 
@@ -17,15 +17,17 @@ pub struct OperatorDefinition {
 pub struct OperatorInstance {
     pub(crate) definition: Arc<RwLock<OperatorDefinition>>,
     pub(crate) envelope: EnvelopeInstance,
+    pub(crate) clock: f32,
 }
 
 impl OperatorInstance {
-    pub fn func(&self, phase: f32) -> f32 {
+    pub fn func(&mut self, frequency: f32, modulation: f32) -> f32 {
         let definition = self.definition.read();
-        definition
-            .waveform
-            .func(definition.frequency_multiplier.multiply(phase))
-            * self.envelope.attenuation()
+
+        let frequency = definition.frequency_multiplier.multiply(frequency);
+        self.clock = (self.clock + 1.0) % (TARGET_SAMPLE_RATE as f32 / frequency);
+
+        definition.waveform.func(self.clock, frequency, modulation) * self.envelope.attenuation()
     }
 }
 
@@ -42,6 +44,33 @@ impl Default for FrequencyMultiplier {
 impl FrequencyMultiplier {
     pub fn max_value() -> u8 {
         20
+    }
+
+    pub fn as_ratio(&self) -> &str {
+        match self.0 {
+            0 => "4:1 0.25",
+            1 => "3:1 ~0.33333",
+            2 => "8:3 ~0.375",
+            3 => "2:1 0.5",
+            4 => "3:2 ~0.666",
+            5 => "4:3 ~0.75",
+            6 => "1:1 1.0",
+            7 => "4:5 1.25",
+            8 => "3:4 ~1.33",
+            9 => "2:3 1.5",
+            10 => "3:5 ~1.66",
+            11 => "1:2 2.0",
+            12 => "2:5 2.5",
+            13 => "3:8 ~2.666",
+            14 => "1:3 3.0",
+            15 => "3:10 ~3.333",
+            16 => "1:4 4.0",
+            17 => "1:5 5.0",
+            18 => "3:16 ~5.333",
+            19 => "1:6 6.0",
+            20 => "3:20 ~6.666",
+            _ => panic!("invalid frequency multiplier value"),
+        }
     }
 
     fn multiply(&self, phase: f32) -> f32 {

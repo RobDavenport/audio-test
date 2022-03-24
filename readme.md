@@ -2,7 +2,7 @@ TODO:
 1. GUI for editing patches / testing
     - Make it cleaner
     - Display the waveform
-1. Fix envelope scaling
+1. Fix envelope scaling? Move to f32's instead of integers?
     - Exponential Attack
     - Decay phases are (incorrectly) basically equal
 1. Save / Loading patches
@@ -36,3 +36,6 @@ ym2612 feedbacks:
 
 consider fast sin function as described:
 https://www.youtube.com/watch?v=1xlCVBIF_ig
+
+For ratios / Freq Multiplier
+https://www.angelfire.com/in2/yala/2fmsynth.htm

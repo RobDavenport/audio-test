@@ -1,5 +1,7 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
+use crate::TARGET_SAMPLE_RATE;
+
 //TODO: Build a lookup table instead of Sin each thing?
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
 //TODO: Calculate a wave's period? to prevent overlooping
@@ -105,7 +107,9 @@ impl Waveform {
         Self::LogarithmicSaw
     }
 
-    pub fn func(&self, value: f32) -> f32 {
+    pub fn func(&self, clock: f32, frequency: f32, modulation: f32) -> f32 {
+        let value = clock * frequency * TAU / TARGET_SAMPLE_RATE as f32;
+        let value = value + modulation;
         match self {
             Self::Sine => value.sin(),
             Self::Pulse(duty) => pulse(value, *duty),
