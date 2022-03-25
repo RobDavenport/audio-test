@@ -49,7 +49,7 @@ impl Algorithm {
                 modulators: [
                     ModulatedBy::Single(0),
                     ModulatedBy::None,
-                    ModulatedBy::Single(3),
+                    ModulatedBy::Single(2),
                 ],
             },
             5 => &AlgorithmDefinition {

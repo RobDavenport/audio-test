@@ -125,9 +125,9 @@ impl EnvelopeInstance {
         let val = (((u8::MAX as f32).sqrt()) * CYCLE_MULTIPLIER) - val;
 
         self.cycles_per_attenuation_tick = val as u16;
-        if self.current_phase == EnvelopePhase::Attack {
-            println!("cycles: {}", self.cycles_per_attenuation_tick);
-        }
+        // if self.current_phase == EnvelopePhase::Attack {
+        //     println!("cycles: {}", self.cycles_per_attenuation_tick);
+        // }
     }
 
     pub(crate) fn tick(&mut self) {
