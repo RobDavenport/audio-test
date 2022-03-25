@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use egui::{ClippedMesh, Color32, Context, TexturesDelta, Ui};
+use egui::{ClippedMesh, Color32, Context, RichText, TexturesDelta, Ui};
 use egui_wgpu_backend::{BackendError, RenderPass, ScreenDescriptor};
 use parking_lot::RwLock;
 use pixels::{wgpu, PixelsContext};
@@ -194,10 +194,16 @@ impl Gui {
 
     fn operator(&mut self, ui: &mut Ui, index: usize) {
         ui.vertical(|ui| {
-            ui.label(format!("Operator: {}", index + 1));
-
             let ref mut patch = self.patch_handle.write();
             let ref mut operator = patch.operators[index].write();
+
+            ui.label(RichText::new(format!("Operator: {}", 1 + index)).color(
+                if patch.algorithm.get_definition().carriers[index] {
+                    Color32::GREEN
+                } else {
+                    Color32::LIGHT_BLUE
+                },
+            ));
 
             ui.horizontal(|ui| {
                 ui.selectable_value(&mut operator.waveform, Waveform::Sine, "Sine");
