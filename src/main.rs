@@ -10,7 +10,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     StreamConfig,
 };
-use gui::framework::Framework;
+use gui::framework::{Framework, Gui};
 // use macroquad::prelude::*;
 use parking_lot::RwLock;
 use pixels::{Pixels, SurfaceTexture};
@@ -72,7 +72,19 @@ fn main() {
     let sound = Arc::new(RwLock::new(PatchDefinition::new(sample_rate.0)));
     let event_loop = EventLoop::new();
     let window = init_window(&event_loop);
-    let (mut pixels, mut framework) = init_pixels(&window, sound.clone());
+
+    let graph = (0..(WIDTH as f32 * GRAPH_WINDOW_MULTIPLIER) as usize)
+        .map(|_| 0.0f32)
+        .collect::<VecDeque<f32>>();
+
+    let graph = Arc::new(RwLock::new(graph));
+    let graph_clone = graph.clone();
+
+    let gui = Gui {
+        patch_handle: sound.clone(),
+        graph_points: graph.clone(),
+    };
+    let (mut pixels, mut framework) = init_pixels(&window, gui);
     let mut input = WinitInputHelper::new();
 
     let mut handles = Vec::new();
@@ -107,13 +119,6 @@ fn main() {
         (code, sound_handle)
     })
     .collect::<Vec<_>>();
-
-    let graph = (0..(WIDTH as f32 * GRAPH_WINDOW_MULTIPLIER) as usize)
-        .map(|_| 0.0f32)
-        .collect::<VecDeque<f32>>();
-
-    let graph = Arc::new(RwLock::new(graph));
-    let graph_clone = graph.clone();
 
     let sequence = SequenceDefinition::test_pattern(sample_rate.0);
     let sequence_instance = SequenceInstance::new(Arc::new(RwLock::new(sequence)));
@@ -246,10 +251,7 @@ fn init_window<T>(event_loop: &EventLoop<T>) -> Window {
         .unwrap()
 }
 
-fn init_pixels(
-    window: &Window,
-    patch_definition: Arc<RwLock<PatchDefinition>>,
-) -> (Pixels, Framework) {
+fn init_pixels(window: &Window, gui: Gui) -> (Pixels, Framework) {
     let window_size = window.inner_size();
     let scale_factor = window.scale_factor() as f32;
     let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
@@ -259,7 +261,7 @@ fn init_pixels(
         window_size.height,
         scale_factor,
         &pixels,
-        patch_definition,
+        gui,
     );
 
     (pixels, framework)

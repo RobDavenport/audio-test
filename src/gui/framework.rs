@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
-use egui::{ClippedMesh, Context, TexturesDelta, Ui};
+use egui::{ClippedMesh, Color32, Context, TexturesDelta, Ui};
 use egui_wgpu_backend::{BackendError, RenderPass, ScreenDescriptor};
 use parking_lot::RwLock;
 use pixels::{wgpu, PixelsContext};
@@ -8,7 +8,7 @@ use winit::window::Window;
 
 use crate::{
     patches::{FrequencyMultiplier, PatchDefinition, OPERATOR_COUNT},
-    Waveform,
+    Waveform, GRAPH_X, WIDTH,
 };
 
 /// Manages all state required for rendering egui over `Pixels`.
@@ -26,9 +26,10 @@ pub(crate) struct Framework {
 }
 
 /// Example application state. A real application will need a lot more state than this.
-struct Gui {
+pub struct Gui {
     /// Only show the egui window when true.
-    patch_handle: Arc<RwLock<PatchDefinition>>,
+    pub(crate) patch_handle: Arc<RwLock<PatchDefinition>>,
+    pub(crate) graph_points: Arc<RwLock<VecDeque<f32>>>,
 }
 
 impl Framework {
@@ -38,7 +39,7 @@ impl Framework {
         height: u32,
         scale_factor: f32,
         pixels: &pixels::Pixels,
-        patch_handle: Arc<RwLock<PatchDefinition>>,
+        gui: Gui,
     ) -> Self {
         let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
 
@@ -51,7 +52,6 @@ impl Framework {
         };
         let rpass = RenderPass::new(pixels.device(), pixels.render_texture_format(), 1);
         let textures = TexturesDelta::default();
-        let gui = Gui::new(patch_handle);
 
         Self {
             egui_ctx,
@@ -131,8 +131,14 @@ impl Framework {
 
 impl Gui {
     /// Create a `Gui`.
-    fn new(patch_handle: Arc<RwLock<PatchDefinition>>) -> Self {
-        Self { patch_handle }
+    fn new(
+        patch_handle: Arc<RwLock<PatchDefinition>>,
+        graph_points: Arc<RwLock<VecDeque<f32>>>,
+    ) -> Self {
+        Self {
+            patch_handle,
+            graph_points,
+        }
     }
 
     /// Create the UI using egui.
@@ -145,86 +151,125 @@ impl Gui {
             ui.add(egui::Slider::new(&mut patch.algorithm.0, 0..=7).text("Algorithm"));
             drop(patch);
 
-            (0..OPERATOR_COUNT).for_each(|index| self.operator(ui, index));
+            // Plot
+            let graph = self.graph_points.read();
+            use egui::plot::{Line, Plot, Value, Values};
+            let line = Line::new(Values::from_values_iter(
+                graph
+                    .iter()
+                    .enumerate()
+                    .map(|(x, y)| Value::new(x as f32, *y)),
+            ))
+            .color(Color32::GREEN);
+
+            let style = ui.style();
+            let indent = style.spacing.indent;
+
+            let plot = Plot::new("Oscilloscope")
+                .width(WIDTH as f32 - (indent))
+                .height(300.0)
+                .allow_boxed_zoom(false)
+                .allow_drag(false)
+                .allow_zoom(false)
+                .include_x(0.0)
+                .include_x(graph.len() as f32)
+                .include_y(-4.0)
+                .include_y(4.0)
+                .show_axes([false, false]);
+            drop(graph);
+
+            ui.add_enabled_ui(false, |ui| {
+                plot.show(ui, |plot_ui| plot_ui.line(line));
+            });
+
+            (0..OPERATOR_COUNT).step_by(2).for_each(|index| {
+                ui.separator();
+                ui.horizontal(|ui| {
+                    self.operator(ui, index);
+                    self.operator(ui, index + 1);
+                });
+            });
         });
     }
 
     fn operator(&mut self, ui: &mut Ui, index: usize) {
-        ui.separator();
+        ui.vertical(|ui| {
+            ui.label(format!("Operator: {}", index + 1));
 
-        let ref mut patch = self.patch_handle.write();
-        let ref mut operator = patch.operators[index].write();
+            let ref mut patch = self.patch_handle.write();
+            let ref mut operator = patch.operators[index].write();
 
-        ui.horizontal(|ui| {
-            ui.selectable_value(&mut operator.waveform, Waveform::Sine, "Sine");
-            ui.selectable_value(&mut operator.waveform, Waveform::HalfSine, "HalfSine");
-            ui.selectable_value(
-                &mut operator.waveform,
-                Waveform::AbsoluteSine,
-                "AbsoluteSine",
-            );
-            ui.selectable_value(&mut operator.waveform, Waveform::QuarterSine, "QuarterSine");
-            ui.selectable_value(
-                &mut operator.waveform,
-                Waveform::AlternatingSine,
-                "AlternatingSine",
-            );
-            ui.selectable_value(&mut operator.waveform, Waveform::CamelSine, "CamelSine");
-            ui.selectable_value(&mut operator.waveform, Waveform::Square, "Square");
-            ui.selectable_value(
-                &mut operator.waveform,
-                Waveform::LogarithmicSaw,
-                "LogarithmicSaw",
-            );
-        });
+            ui.horizontal(|ui| {
+                ui.selectable_value(&mut operator.waveform, Waveform::Sine, "Sine");
+                ui.selectable_value(&mut operator.waveform, Waveform::HalfSine, "HalfSine");
+                ui.selectable_value(
+                    &mut operator.waveform,
+                    Waveform::AbsoluteSine,
+                    "AbsoluteSine",
+                );
+                ui.selectable_value(&mut operator.waveform, Waveform::QuarterSine, "QuarterSine");
+                ui.selectable_value(
+                    &mut operator.waveform,
+                    Waveform::AlternatingSine,
+                    "AlternatingSine",
+                );
+                ui.selectable_value(&mut operator.waveform, Waveform::CamelSine, "CamelSine");
+                ui.selectable_value(&mut operator.waveform, Waveform::Square, "Square");
+                ui.selectable_value(
+                    &mut operator.waveform,
+                    Waveform::LogarithmicSaw,
+                    "LogarithmicSaw",
+                );
+            });
 
-        ui.add(
-            egui::Slider::new(
-                &mut operator.frequency_multiplier.0,
-                0..=FrequencyMultiplier::max_value(),
-            )
-            .text("Frequency Multiuplier"),
-        );
+            ui.add(
+                egui::Slider::new(
+                    &mut operator.frequency_multiplier.0,
+                    0..=FrequencyMultiplier::max_value(),
+                )
+                .text("Frequency Multiuplier"),
+            );
 
-        // Envelope
-        let ref mut envelope = operator.envelope.write();
-        ui.horizontal(|ui| {
-            ui.add(
-                egui::Slider::new(&mut envelope.total_level, u8::MIN..=u8::MAX)
-                    .text("TL")
-                    .vertical()
-                    .step_by(1.0),
-            );
-            ui.add(
-                egui::Slider::new(&mut envelope.attack_rate, u8::MIN..=u8::MAX)
-                    .text("AR")
-                    .vertical()
-                    .step_by(1.0),
-            );
-            ui.add(
-                egui::Slider::new(&mut envelope.decay_attack_rate, u8::MIN..=u8::MAX)
-                    .text("D1")
-                    .vertical()
-                    .step_by(1.0),
-            );
-            ui.add(
-                egui::Slider::new(&mut envelope.sustain_level, u8::MIN..=u8::MAX)
-                    .text("SL")
-                    .vertical()
-                    .step_by(1.0),
-            );
-            ui.add(
-                egui::Slider::new(&mut envelope.decay_sustain_rate, u8::MIN..=u8::MAX)
-                    .text("D2")
-                    .vertical()
-                    .step_by(1.0),
-            );
-            ui.add(
-                egui::Slider::new(&mut envelope.release_rate, u8::MIN..=u8::MAX)
-                    .text("RR")
-                    .vertical()
-                    .step_by(1.0),
-            );
+            // Envelope
+            let ref mut envelope = operator.envelope.write();
+            ui.horizontal(|ui| {
+                ui.add(
+                    egui::Slider::new(&mut envelope.total_level, u8::MIN..=u8::MAX)
+                        .text("TL")
+                        .vertical()
+                        .step_by(1.0),
+                );
+                ui.add(
+                    egui::Slider::new(&mut envelope.attack_rate, u8::MIN..=u8::MAX)
+                        .text("AR")
+                        .vertical()
+                        .step_by(1.0),
+                );
+                ui.add(
+                    egui::Slider::new(&mut envelope.decay_attack_rate, u8::MIN..=u8::MAX)
+                        .text("D1")
+                        .vertical()
+                        .step_by(1.0),
+                );
+                ui.add(
+                    egui::Slider::new(&mut envelope.sustain_level, u8::MIN..=u8::MAX)
+                        .text("SL")
+                        .vertical()
+                        .step_by(1.0),
+                );
+                ui.add(
+                    egui::Slider::new(&mut envelope.decay_sustain_rate, u8::MIN..=u8::MAX)
+                        .text("D2")
+                        .vertical()
+                        .step_by(1.0),
+                );
+                ui.add(
+                    egui::Slider::new(&mut envelope.release_rate, u8::MIN..=u8::MAX)
+                        .text("RR")
+                        .vertical()
+                        .step_by(1.0),
+                );
+            });
         });
     }
 }
