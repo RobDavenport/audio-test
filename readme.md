@@ -17,6 +17,18 @@ TODO:
     - Use fixed point? u16 or something instead of f32, can then use a lookup table 
 
 
+ORIGINAL NOTES:
+1. Sound engine limitations, how many channels (16?), samples etc
+1. 48 khz sample rate
+1. Support Sound Limits:
+    1. 8 FM channels, 8 sample channels for music
+    1. 8 FM channels, 8 sample channels for "game sounds"
+1. Support stereo sounds?
+1. Samples should be built in to the engine
+1. Generate some Synth starter tones
+1. Select up to 512(?) possible samples
+
+
 https://plutiedev.com/ym2612-registers#reg-40
 https://www.smspower.org/maxim/Documents/YM2612#alittlebitaboutoperators
 https://manualmachine.com/sega/genesisfmdrive/2121418-user-guide/
