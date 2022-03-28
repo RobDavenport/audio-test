@@ -4,6 +4,7 @@ TODO:
     - Exponential Attack
     - Decay phases are (incorrectly) basically equal
 1. Save / Loading patches
+1. "Randomize" Button
 1. Detune
 1. Effects
     - Vibrato

@@ -159,7 +159,9 @@ impl EnvelopeInstance {
                 EnvelopePhase::Decay => {
                     self.current_attenuation += 1;
 
-                    if self.current_attenuation >= self.definition.read().sustain_level as u16 {
+                    if self.current_attenuation
+                        >= (u8::MAX - self.definition.read().sustain_level) as u16
+                    {
                         self.next_phase();
                     }
                 }
