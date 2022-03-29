@@ -6,6 +6,8 @@ use crate::{Waveform, TARGET_SAMPLE_RATE};
 
 use super::{EnvelopeDefinition, EnvelopeInstance};
 
+// const ONE_SEMITONE: f32 = 2.0_f32.powf(1.0/12.0);
+
 #[derive(Default, Clone, Debug)]
 pub struct OperatorDefinition {
     pub(crate) waveform: Waveform,
@@ -24,10 +26,22 @@ impl OperatorInstance {
     pub fn func(&mut self, frequency: f32, modulation: f32) -> f32 {
         let definition = self.definition.read();
 
-        let frequency = definition.frequency_multiplier.multiply(frequency);
+        let frequency =
+            definition.frequency_multiplier.multiply(frequency) * self.detune_as_multiplier();
         self.clock = (self.clock + 1.0) % (TARGET_SAMPLE_RATE as f32 / frequency);
 
         definition.waveform.func(self.clock, frequency, modulation) * self.envelope.attenuation()
+    }
+
+    fn detune_as_multiplier(&self) -> f32 {
+        let detune = self.definition.read().detune;
+        assert!(detune <= 100);
+        assert!(detune >= -100);
+        if detune >= 0 {
+            1.0 + ((detune as f32 / 100.0) * 0.05946309436)
+        } else {
+            1.0 + ((detune as f32 / 100.0) * (1.0 - 0.94387431268))
+        }
     }
 }
 
@@ -52,23 +66,23 @@ impl FrequencyMultiplier {
             1 => "3:1 ~0.33333",
             2 => "8:3 ~0.375",
             3 => "2:1 0.5",
-            4 => "3:2 ~0.666",
+            4 => "3:2 ~0.66667",
             5 => "4:3 ~0.75",
             6 => "1:1 1.0",
             7 => "4:5 1.25",
-            8 => "3:4 ~1.33",
+            8 => "3:4 ~1.33333",
             9 => "2:3 1.5",
-            10 => "3:5 ~1.66",
+            10 => "3:5 ~1.66667",
             11 => "1:2 2.0",
             12 => "2:5 2.5",
-            13 => "3:8 ~2.666",
+            13 => "3:8 ~2.66667",
             14 => "1:3 3.0",
-            15 => "3:10 ~3.333",
+            15 => "3:10 ~3.33333",
             16 => "1:4 4.0",
             17 => "1:5 5.0",
-            18 => "3:16 ~5.333",
+            18 => "3:16 ~5.33333",
             19 => "1:6 6.0",
-            20 => "3:20 ~6.666",
+            20 => "3:20 ~6.66667",
             _ => panic!("invalid frequency multiplier value"),
         }
     }

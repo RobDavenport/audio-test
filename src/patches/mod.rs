@@ -16,7 +16,7 @@ pub const OPERATOR_COUNT: usize = 4;
 pub const AMPLIFICATION: f32 = 25.0;
 pub const ENV_DB: f32 = 96.0;
 pub const ATTENUATION_BITS: u32 = 10;
-pub const ATTENUATION_MAX: u16 = 2u16.pow(ATTENUATION_BITS) - 1;
+pub const ATTENUATION_MAX: u16 = 2u16.pow(ATTENUATION_BITS);
 
 fn calculate_attenuation(amount: usize, max: usize) -> f32 {
     let db = -(ENV_DB / (max as f32 + 1.0)) * amount as f32;

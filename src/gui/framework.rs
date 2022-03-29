@@ -8,7 +8,7 @@ use winit::window::Window;
 
 use crate::{
     patches::{FrequencyMultiplier, PatchDefinition, OPERATOR_COUNT},
-    Waveform, GRAPH_X, WIDTH,
+    Waveform, WIDTH,
 };
 
 /// Manages all state required for rendering egui over `Pixels`.
@@ -130,7 +130,6 @@ impl Framework {
 }
 
 impl Gui {
-    /// Create a `Gui`.
     fn new(
         patch_handle: Arc<RwLock<PatchDefinition>>,
         graph_points: Arc<RwLock<VecDeque<f32>>>,
@@ -207,25 +206,41 @@ impl Gui {
 
             ui.horizontal(|ui| {
                 ui.selectable_value(&mut operator.waveform, Waveform::Sine, "Sine");
+                ui.selectable_value(
+                    &mut operator.waveform,
+                    Waveform::InvertedSine,
+                    "InvertedSine",
+                );
+
                 ui.selectable_value(&mut operator.waveform, Waveform::HalfSine, "HalfSine");
                 ui.selectable_value(
                     &mut operator.waveform,
-                    Waveform::AbsoluteSine,
-                    "AbsoluteSine",
+                    Waveform::InvertedHalfSine,
+                    "InvertedHalfSine",
                 );
-                ui.selectable_value(&mut operator.waveform, Waveform::QuarterSine, "QuarterSine");
+                // ui.selectable_value(
+                //     &mut operator.waveform,
+                //     Waveform::AbsoluteSine,
+                //     "AbsoluteSine",
+                // );
+                //ui.selectable_value(&mut operator.waveform, Waveform::QuarterSine, "QuarterSine");
                 ui.selectable_value(
                     &mut operator.waveform,
                     Waveform::AlternatingSine,
                     "AlternatingSine",
                 );
-                ui.selectable_value(&mut operator.waveform, Waveform::CamelSine, "CamelSine");
-                ui.selectable_value(&mut operator.waveform, Waveform::Square, "Square");
                 ui.selectable_value(
                     &mut operator.waveform,
-                    Waveform::LogarithmicSaw,
-                    "LogarithmicSaw",
+                    Waveform::InvertedAlternatingSine,
+                    "InvertedAlternatingSine",
                 );
+                ui.selectable_value(&mut operator.waveform, Waveform::CamelSine, "CamelSine");
+                ui.selectable_value(
+                    &mut operator.waveform,
+                    Waveform::InvertedCamelSine,
+                    "InvertedCamelSine",
+                );
+                //ui.selectable_value(&mut operator.waveform, Waveform::Square, "Square");
             });
 
             ui.add(
@@ -235,6 +250,8 @@ impl Gui {
                 )
                 .text("Frequency Multiuplier"),
             );
+
+            ui.add(egui::Slider::new(&mut operator.detune, -100..=100).text("Detune"));
 
             // Envelope
             let ref mut envelope = operator.envelope.write();

@@ -4,8 +4,6 @@ use parking_lot::RwLock;
 
 use super::{attenuation_table_u10, attenuation_table_u8, ATTENUATION_MAX};
 
-const CYCLE_MULTIPLIER: f32 = 32.0;
-
 #[derive(Clone, Debug)]
 pub struct EnvelopeDefinition {
     pub(crate) total_level: u8,
@@ -52,140 +50,116 @@ impl EnvelopeDefinition {
     }
 }
 
+impl EnvelopeDefinition {
+    fn get_attack_rate(&self) -> f32 {
+        (self.attack_rate as f32 / u8::MAX as f32).powi(3)
+    }
+
+    fn get_decay_rate(&self) -> f32 {
+        (self.decay_attack_rate as f32 / u8::MAX as f32).powi(3)
+    }
+
+    fn get_sustain_rate(&self) -> f32 {
+        (self.decay_sustain_rate as f32 / u8::MAX as f32).powi(3)
+    }
+
+    fn get_release_rate(&self) -> f32 {
+        (self.release_rate as f32 / u8::MAX as f32).powi(3)
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 enum EnvelopePhase {
     Attack,
     Decay,
     Sustain,
     Release,
+    Off,
 }
 #[derive(Clone, Debug)]
 pub struct EnvelopeInstance {
     definition: Arc<RwLock<EnvelopeDefinition>>,
-    current_attenuation: u16,
-    attenuation_rate: u16,
+    current_attenuation: f32,
+    attenuation_rate: f32,
     current_phase: EnvelopePhase,
-    clock: u16,
-    cycles_per_attenuation_tick: u16,
 }
 
 impl EnvelopeInstance {
     pub fn new(definition: Arc<RwLock<EnvelopeDefinition>>) -> Self {
         Self {
             definition,
-            current_attenuation: ATTENUATION_MAX,
-            attenuation_rate: 0,
-            current_phase: EnvelopePhase::Release,
-            clock: 0,
-            cycles_per_attenuation_tick: 0,
+            current_attenuation: ATTENUATION_MAX as f32,
+            attenuation_rate: 0.0,
+            current_phase: EnvelopePhase::Off,
         }
     }
 
     pub fn attenuation(&self) -> f32 {
-        attenuation_table_u10(self.current_attenuation)
+        attenuation_table_u10(self.current_attenuation as u16)
             * attenuation_table_u8(u8::MAX - self.definition.read().total_level)
     }
 
     pub fn key_on(&mut self) {
         self.current_phase = EnvelopePhase::Attack;
-        self.attenuation_rate = self.calculate_attack_rate();
-        self.calculate_cycles_per_tick();
+        self.attenuation_rate = self.definition.read().get_attack_rate();
     }
 
     pub fn key_off(&mut self) {
         self.current_phase = EnvelopePhase::Release;
-        self.attenuation_rate = self.calculate_release_rate();
-        self.calculate_cycles_per_tick();
+        self.attenuation_rate = self.definition.read().get_release_rate();
     }
 
     fn next_phase(&mut self) {
         match self.current_phase {
             EnvelopePhase::Attack => {
-                self.attenuation_rate = self.calculate_decay_rate();
+                self.attenuation_rate = self.definition.read().get_decay_rate();
                 self.current_phase = EnvelopePhase::Decay;
-                self.calculate_cycles_per_tick();
             }
             EnvelopePhase::Decay => {
-                self.attenuation_rate = self.calculate_sustain_rate();
+                self.attenuation_rate = self.definition.read().get_sustain_rate();
                 self.current_phase = EnvelopePhase::Sustain;
-                self.calculate_cycles_per_tick();
             }
             EnvelopePhase::Sustain => {
-                self.attenuation_rate = self.calculate_release_rate();
+                self.attenuation_rate = self.definition.read().get_release_rate();
                 self.current_phase = EnvelopePhase::Release;
-                self.calculate_cycles_per_tick();
             }
-            EnvelopePhase::Release => (),
+            EnvelopePhase::Release => {
+                self.attenuation_rate = 0.0;
+                self.current_phase = EnvelopePhase::Off;
+            }
+            EnvelopePhase::Off => panic!("Called Next phase on Off"),
         };
-        self.clock = 0;
-    }
-
-    fn calculate_cycles_per_tick(&mut self) {
-        let val = (self.attenuation_rate as f32).sqrt() * CYCLE_MULTIPLIER;
-        let val = (((u8::MAX as f32).sqrt()) * CYCLE_MULTIPLIER) - val;
-
-        self.cycles_per_attenuation_tick = val as u16;
-        // if self.current_phase == EnvelopePhase::Attack {
-        //     println!("cycles: {}", self.cycles_per_attenuation_tick);
-        // }
     }
 
     pub(crate) fn tick(&mut self) {
-        if self.attenuation_rate == 0 {
-            return;
-        }
+        match self.current_phase {
+            EnvelopePhase::Attack => {
+                self.current_attenuation -= self.attenuation_rate;
 
-        self.clock += 1;
-
-        if self.clock < self.cycles_per_attenuation_tick {
-            return;
-        }
-
-        self.clock = 0;
-
-        if self.current_phase != EnvelopePhase::Attack
-            && self.current_attenuation >= ATTENUATION_MAX
-        {
-            return;
-        } else {
-            match self.current_phase {
-                EnvelopePhase::Attack => {
-                    self.current_attenuation = self.current_attenuation.saturating_sub(1);
-
-                    if self.current_attenuation == 0 {
-                        self.next_phase();
-                    }
-                }
-                EnvelopePhase::Decay => {
-                    self.current_attenuation += 1;
-
-                    if self.current_attenuation
-                        >= (u8::MAX - self.definition.read().sustain_level) as u16
-                    {
-                        self.next_phase();
-                    }
-                }
-                EnvelopePhase::Sustain | EnvelopePhase::Release => {
-                    self.current_attenuation += 1;
+                if self.current_attenuation <= 0.0 {
+                    self.current_attenuation = 0.0;
+                    self.next_phase();
                 }
             }
+            EnvelopePhase::Decay => {
+                self.current_attenuation += self.attenuation_rate;
+                let sustain_level = self.definition.read().sustain_level;
+
+                if self.current_attenuation >= (u8::MAX - sustain_level) as f32 {
+                    self.current_attenuation = (u8::MAX - sustain_level) as f32;
+                    self.next_phase();
+                }
+            }
+            EnvelopePhase::Sustain | EnvelopePhase::Release => {
+                self.current_attenuation += self.attenuation_rate;
+                if self.current_attenuation >= ATTENUATION_MAX as f32 {
+                    self.current_phase = EnvelopePhase::Off;
+                    self.attenuation_rate = 0.0;
+                    self.current_attenuation = ATTENUATION_MAX as f32;
+                }
+            }
+            EnvelopePhase::Off => (),
         }
-    }
-
-    pub(crate) fn calculate_attack_rate(&self) -> u16 {
-        self.definition.read().attack_rate as u16
-    }
-
-    pub(crate) fn calculate_decay_rate(&self) -> u16 {
-        self.definition.read().decay_attack_rate as u16
-    }
-
-    pub(crate) fn calculate_sustain_rate(&self) -> u16 {
-        self.definition.read().decay_sustain_rate as u16
-    }
-
-    pub(crate) fn calculate_release_rate(&self) -> u16 {
-        self.definition.read().release_rate as u16
     }
 }
 

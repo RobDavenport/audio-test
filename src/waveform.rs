@@ -25,6 +25,12 @@ pub enum Waveform {
     LogarithmicSaw,
     // Other
     //PitchedNoise(u32),
+
+    // Tx81z
+    InvertedSine,
+    InvertedHalfSine,
+    InvertedAlternatingSine,
+    InvertedCamelSine,
 }
 
 impl Default for Waveform {
@@ -123,6 +129,10 @@ impl Waveform {
             Self::AlternatingSine => alternating_sine(value),
             Self::CamelSine => camel_sine(value),
             Self::LogarithmicSaw => logarithmic_saw(value),
+            Self::InvertedSine => inverted_sine(value),
+            Self::InvertedHalfSine => inverted_half_sine(value),
+            Self::InvertedAlternatingSine => inverted_alternating_sine(value),
+            Self::InvertedCamelSine => inverted_camel_sine(value),
             //Self::PitchedNoise(state) => todo!(),
         }
     }
@@ -141,8 +151,11 @@ fn square(value: f32) -> f32 {
 }
 
 fn half_sine(value: f32) -> f32 {
-    let output = value.sin();
-    output.is_sign_positive() as u32 as f32 * output
+    if value < TAU * 0.5 {
+        value.sin()
+    } else {
+        0.0
+    }
 }
 
 fn quarter_sine(value: f32) -> f32 {
@@ -155,7 +168,7 @@ fn quarter_sine(value: f32) -> f32 {
 }
 
 fn alternating_sine(value: f32) -> f32 {
-    if value.sin().is_sign_positive() {
+    if value < TAU * 0.5 {
         (value * 2.0).sin()
     } else {
         0.0
@@ -168,4 +181,35 @@ fn camel_sine(value: f32) -> f32 {
 
 fn logarithmic_saw(value: f32) -> f32 {
     (((value % TAU) - PI) / PI).asin() / -FRAC_PI_2
+}
+
+fn inverted_sine(value: f32) -> f32 {
+    let cos = value.cos();
+    if value < TAU * 0.25 {
+        1.0 - cos
+    } else if value < TAU * 0.5 {
+        1.0 + cos
+    } else if value < TAU * 0.75 {
+        -1.0 - cos
+    } else {
+        -1.0 + cos
+    }
+}
+
+fn inverted_half_sine(value: f32) -> f32 {
+    if value < TAU * 0.5 {
+        inverted_sine(value)
+    } else {
+        0.0
+    }
+}
+fn inverted_alternating_sine(value: f32) -> f32 {
+    if value < TAU * 0.5 {
+        inverted_sine(value * 2.0)
+    } else {
+        0.0
+    }
+}
+fn inverted_camel_sine(value: f32) -> f32 {
+    inverted_alternating_sine(value).abs()
 }

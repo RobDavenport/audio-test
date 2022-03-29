@@ -1,11 +1,7 @@
 TODO:
-1. GUI for editing patches / testing
-1. Fix envelope scaling? Move to f32's instead of integers?
-    - Exponential Attack
-    - Decay phases are (incorrectly) basically equal
 1. Save / Loading patches
+1. Add "transpose" or keyboard movement buttons to UI
 1. "Randomize" Button
-1. Detune
 1. Effects
     - Vibrato
     - Tremolo
