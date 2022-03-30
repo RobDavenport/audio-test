@@ -130,19 +130,8 @@ impl Framework {
 }
 
 impl Gui {
-    fn new(
-        patch_handle: Arc<RwLock<PatchDefinition>>,
-        graph_points: Arc<RwLock<VecDeque<f32>>>,
-    ) -> Self {
-        Self {
-            patch_handle,
-            graph_points,
-        }
-    }
-
-    /// Create the UI using egui.
     fn ui(&mut self, ctx: &Context) {
-        egui::CentralPanel::default().show(&ctx, |ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("Patch Settings");
 
             let mut patch = self.patch_handle.write();
@@ -193,8 +182,8 @@ impl Gui {
 
     fn operator(&mut self, ui: &mut Ui, index: usize) {
         ui.vertical(|ui| {
-            let ref mut patch = self.patch_handle.write();
-            let ref mut operator = patch.operators[index].write();
+            let patch = &mut self.patch_handle.write();
+            let operator = &mut patch.operators[index].write();
 
             ui.label(RichText::new(format!("Operator: {}", 1 + index)).color(
                 if patch.algorithm.get_definition().carriers[index] {
@@ -218,12 +207,7 @@ impl Gui {
                     Waveform::InvertedHalfSine,
                     "InvertedHalfSine",
                 );
-                // ui.selectable_value(
-                //     &mut operator.waveform,
-                //     Waveform::AbsoluteSine,
-                //     "AbsoluteSine",
-                // );
-                //ui.selectable_value(&mut operator.waveform, Waveform::QuarterSine, "QuarterSine");
+
                 ui.selectable_value(
                     &mut operator.waveform,
                     Waveform::AlternatingSine,
@@ -234,27 +218,29 @@ impl Gui {
                     Waveform::InvertedAlternatingSine,
                     "InvertedAlternatingSine",
                 );
+
                 ui.selectable_value(&mut operator.waveform, Waveform::CamelSine, "CamelSine");
                 ui.selectable_value(
                     &mut operator.waveform,
                     Waveform::InvertedCamelSine,
                     "InvertedCamelSine",
                 );
-                //ui.selectable_value(&mut operator.waveform, Waveform::Square, "Square");
             });
 
+            // TODO: Reset clock if frequency or detune change
+            let text = operator.frequency_multiplier.as_ratio().to_string();
             ui.add(
                 egui::Slider::new(
                     &mut operator.frequency_multiplier.0,
                     0..=FrequencyMultiplier::max_value(),
                 )
-                .text("Frequency Multiuplier"),
+                .text(text),
             );
 
             ui.add(egui::Slider::new(&mut operator.detune, -100..=100).text("Detune"));
 
             // Envelope
-            let ref mut envelope = operator.envelope.write();
+            let envelope = &mut operator.envelope.write();
             ui.horizontal(|ui| {
                 ui.add(
                     egui::Slider::new(&mut envelope.total_level, u8::MIN..=u8::MAX)

@@ -63,9 +63,7 @@ impl SequenceDefinition {
 
     pub fn test_pattern(sample_rate: u32) -> Self {
         let patches = PatchDefinition::new(sample_rate);
-        let mut patterns = Vec::new();
-
-        patterns.push(Pattern {
+        let mut patterns = vec![Pattern {
             entires: vec![
                 PatternEntry {
                     patch_index: Some(0),
@@ -197,7 +195,7 @@ impl SequenceDefinition {
                 },
             ]
             .into_boxed_slice(),
-        });
+        }];
 
         let demo_length = patterns[0].pattern_length();
 

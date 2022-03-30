@@ -45,7 +45,6 @@ impl EnvelopeDefinition {
             decay_attack_rate,
             decay_sustain_rate,
             release_rate,
-            ..Default::default()
         }
     }
 }

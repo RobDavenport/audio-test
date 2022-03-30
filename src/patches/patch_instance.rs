@@ -76,7 +76,7 @@ impl PatchInstance {
         self.prev_feedback2 = self.prev_feedback1;
         self.prev_feedback1 = outputs[0];
 
-        if algorithm.carriers[0] == true {
+        if algorithm.carriers[0] {
             final_output += outputs[0] * AMPLIFICATION;
         };
         // End 1st Operator
@@ -96,13 +96,12 @@ impl PatchInstance {
 
             outputs[i] = result;
 
-            if algorithm.carriers[i] == true {
+            if algorithm.carriers[i] {
                 final_output += result;
             }
         });
 
-        let final_output = final_output / AMPLIFICATION;
-        final_output
+        final_output / AMPLIFICATION
     }
 
     //TODO: Potentially add left/right scaling here?

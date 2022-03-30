@@ -81,7 +81,7 @@ fn main() {
 
     let gui = Gui {
         patch_handle: sound.clone(),
-        graph_points: graph.clone(),
+        graph_points: graph,
     };
     let (mut pixels, mut framework) = init_pixels(&window, gui);
     let mut input = WinitInputHelper::new();

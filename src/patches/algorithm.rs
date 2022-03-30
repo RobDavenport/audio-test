@@ -6,7 +6,7 @@ pub enum ModulatedBy {
     Double(usize, usize),
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Default)]
 pub struct Algorithm(pub u8);
 
 impl Algorithm {
@@ -70,12 +70,6 @@ impl Algorithm {
             },
             _ => panic!("invalid algorithm value"),
         }
-    }
-}
-
-impl Default for Algorithm {
-    fn default() -> Self {
-        Self(0)
     }
 }
 

@@ -55,7 +55,7 @@ pub fn generate() {
             frequency: next_frequency as f32,
         });
 
-        note_name = note_name + 1;
+        note_name += 1;
         note_delta += 1;
         if note_name == 12 {
             note_name = 0;
@@ -84,7 +84,7 @@ pub fn generate() {
             note_name = 12;
             octave -= 1;
         }
-        note_name = note_name - 1;
+        note_name -= 1;
         note_delta -= 1;
     }
 

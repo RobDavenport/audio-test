@@ -1,6 +1,7 @@
 mod algorithm;
 mod envelope;
 mod feedback;
+mod frequency_multiplier;
 mod operator;
 mod patch_definition;
 mod patch_instance;
@@ -8,6 +9,7 @@ mod patch_instance;
 pub use algorithm::*;
 pub use envelope::*;
 pub use feedback::*;
+pub use frequency_multiplier::*;
 pub use operator::*;
 pub use patch_definition::*;
 pub use patch_instance::*;

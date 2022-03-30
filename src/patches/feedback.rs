@@ -1,13 +1,7 @@
 use std::f32::consts::PI;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedbackLevel(pub usize);
-
-impl Default for FeedbackLevel {
-    fn default() -> Self {
-        Self(0)
-    }
-}
 
 impl FeedbackLevel {
     pub fn as_multiplier(&self) -> f32 {
