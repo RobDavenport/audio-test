@@ -113,8 +113,19 @@ impl Waveform {
         Self::LogarithmicSaw
     }
 
-    pub fn func(self, phase: u32, modulation: f32) -> f32 {
-        sin::lookup(phase, modulation)
+    pub fn func(self, phase: u64, modulation: f32) -> f32 {
+        match self {
+            Waveform::Sine => sin::lookup(phase),
+            Waveform::HalfSine => todo!(),
+            Waveform::AlternatingSine => todo!(),
+            Waveform::CamelSine => todo!(),
+            Waveform::InvertedSine => todo!(),
+            Waveform::InvertedHalfSine => todo!(),
+            Waveform::InvertedAlternatingSine => todo!(),
+            Waveform::InvertedCamelSine => todo!(),
+            _ => todo!(),
+        }
+        
     }
 
     // pub fn func(self, clock: f32, frequency: f32, modulation: f32) -> f32 {

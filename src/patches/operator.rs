@@ -19,7 +19,7 @@ pub struct OperatorDefinition {
 pub struct OperatorInstance {
     pub(crate) definition: Arc<RwLock<OperatorDefinition>>,
     pub(crate) envelope: EnvelopeInstance,
-    pub(crate) clock: u32,
+    pub(crate) clock: u64,
 }
 
 impl OperatorInstance {
@@ -28,7 +28,9 @@ impl OperatorInstance {
 
         let frequency =
             definition.frequency_multiplier.multiply(base_frequency) * self.detune_as_multiplier();
-        self.clock = self.clock.wrapping_add(sin::get_delta_p(frequency));
+        let dp = sin::get_delta_p(frequency);
+        //println!("dp: {}", dp);
+        self.clock = self.clock.wrapping_add(dp);
         // let amt = TARGET_SAMPLE_RATE as f32 / frequency;
 
         // self.clock += 1.0;

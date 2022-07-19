@@ -1,6 +1,6 @@
 use std::f32::consts::TAU;
 
-use crate::{TARGET_SAMPLE_RATE, patches::ATTENUATION_MAX};
+use crate::{TARGET_SAMPLE_RATE};
 
 const LUT_BIT_LENGTH: u32 = 16;
 const LUT_ENTRY_COUNT: usize = 2_usize.pow(LUT_BIT_LENGTH);
@@ -16,19 +16,15 @@ pub fn init_sin_lut() {
     })};
 }
 
-pub fn lookup(phase: u32, modulation: f32) -> f32 {
-    let modulation = modulation * LUT_ENTRY_COUNT as f32 * ATTENUATION_MAX as f32;
-    let phase = phase + modulation as u32;
-    let index = (phase >> (u32::BITS - LUT_BIT_LENGTH)) as usize;
-    let out = unsafe { SIN_TABLE[index] };
-    //println!("phase: {}, lookup({}): {}", phase, index, out);
-    out
+pub fn lookup(phase: u64) -> f32 {
+    let index = (phase >> (u64::BITS - LUT_BIT_LENGTH)) as usize;
+    unsafe { SIN_TABLE[index] }
 }
 
 fn get_w() -> f32 {
-    u32::MAX as f32 / TARGET_SAMPLE_RATE as f32
+    u64::MAX as f32 / TARGET_SAMPLE_RATE as f32
 }
 
-pub fn get_delta_p(frequency: f32) -> u32 {
-    (frequency * get_w()) as u32
+pub fn get_delta_p(frequency: f32) -> u64 {
+    (frequency * get_w()) as u64
 }
