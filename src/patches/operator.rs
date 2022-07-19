@@ -28,7 +28,12 @@ impl OperatorInstance {
 
         let frequency =
             definition.frequency_multiplier.multiply(base_frequency) * self.detune_as_multiplier();
-        self.clock = (self.clock + 1.0) % (TARGET_SAMPLE_RATE as f32 / frequency);
+        let amt = TARGET_SAMPLE_RATE as f32 / frequency;
+
+        self.clock += 1.0;
+        if self.clock > amt {
+            self.clock -= amt
+        }
 
         definition.waveform.func(self.clock, frequency, modulation) * self.envelope.attenuation()
     }

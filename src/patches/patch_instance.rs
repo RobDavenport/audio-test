@@ -120,7 +120,13 @@ impl PatchInstance {
     }
 
     fn tick(&mut self) {
-        self.clock = (self.clock + 1.0) % (TARGET_SAMPLE_RATE as f32 / self.base_frequency);
+        let amt = TARGET_SAMPLE_RATE as f32 / self.base_frequency;
+
+        self.clock += 1.0;
+        if self.clock > amt {
+            self.clock -= amt
+        };
+
         self.operators
             .iter_mut()
             .for_each(|operator| operator.envelope.tick());

@@ -1,10 +1,10 @@
 use std::f32::consts::PI;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct FeedbackLevel(pub usize);
 
 impl FeedbackLevel {
-    pub fn as_multiplier(&self) -> f32 {
+    pub fn as_multiplier(self) -> f32 {
         match self.0 {
             0 => 0.0,
             1 => PI / 128.0,

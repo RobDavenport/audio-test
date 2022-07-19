@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct FrequencyMultiplier(pub u8);
 
 impl Default for FrequencyMultiplier {
@@ -13,7 +13,7 @@ impl FrequencyMultiplier {
         20
     }
 
-    pub fn as_ratio(&self) -> &str {
+    pub fn as_ratio(self) -> &'static str {
         match self.0 {
             0 => "4:1 0.25",
             1 => "3:1 ~0.33333",
@@ -40,7 +40,7 @@ impl FrequencyMultiplier {
         }
     }
 
-    pub fn multiply(&self, phase: f32) -> f32 {
+    pub fn multiply(self, phase: f32) -> f32 {
         match self.0 {
             0 => phase * (1. / 4.),   // 4:1 0.25
             1 => phase * (1. / 3.),   // 3:1 ~0.33333

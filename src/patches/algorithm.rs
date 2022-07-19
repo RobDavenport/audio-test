@@ -6,11 +6,11 @@ pub enum ModulatedBy {
     Double(usize, usize),
 }
 
-#[derive(PartialEq, Clone, Debug, Default)]
+#[derive(PartialEq, Copy, Clone, Debug, Default)]
 pub struct Algorithm(pub u8);
 
 impl Algorithm {
-    pub fn get_definition(&self) -> &'static AlgorithmDefinition {
+    pub fn get_definition(self) -> &'static AlgorithmDefinition {
         match self.0 {
             0 => &AlgorithmDefinition {
                 carriers: [false, false, false, true],

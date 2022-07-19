@@ -6,7 +6,7 @@ use crate::TARGET_SAMPLE_RATE;
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
 //TODO: Calculate a wave's period? to prevent overlooping
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Waveform {
     // Basics
     Sine,
@@ -113,12 +113,12 @@ impl Waveform {
         Self::LogarithmicSaw
     }
 
-    pub fn func(&self, clock: f32, frequency: f32, modulation: f32) -> f32 {
+    pub fn func(self, clock: f32, frequency: f32, modulation: f32) -> f32 {
         let value = clock * frequency * TAU / TARGET_SAMPLE_RATE as f32;
         let value = value + modulation;
         match self {
             Self::Sine => value.sin(),
-            Self::Pulse(duty) => pulse(value, *duty),
+            Self::Pulse(duty) => pulse(value, duty),
             Self::Square => square(value),
             Self::Saw => ((value % TAU) / PI) - 1.0,
             Self::Triangle => value.sin().asin() / FRAC_PI_2,
