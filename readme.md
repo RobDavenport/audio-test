@@ -49,3 +49,6 @@ https://www.angelfire.com/in2/yala/2fmsynth.htm
 
 Envelope Example Code:
 http://www.martin-finke.de/blog/articles/audio-plugins-011-envelopes/
+
+Sin LUT Helper:
+https://www.reddit.com/r/DSP/comments/2yhsua/how_do_oscillators_work_in_dspprogramming/

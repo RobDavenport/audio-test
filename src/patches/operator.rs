@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
-use crate::{Waveform, TARGET_SAMPLE_RATE};
+use crate::{Waveform, TARGET_SAMPLE_RATE, sin};
 
 use super::{EnvelopeDefinition, EnvelopeInstance, FrequencyMultiplier};
 
@@ -19,7 +19,7 @@ pub struct OperatorDefinition {
 pub struct OperatorInstance {
     pub(crate) definition: Arc<RwLock<OperatorDefinition>>,
     pub(crate) envelope: EnvelopeInstance,
-    pub(crate) clock: f32,
+    pub(crate) clock: u32,
 }
 
 impl OperatorInstance {
@@ -28,14 +28,15 @@ impl OperatorInstance {
 
         let frequency =
             definition.frequency_multiplier.multiply(base_frequency) * self.detune_as_multiplier();
-        let amt = TARGET_SAMPLE_RATE as f32 / frequency;
+        self.clock = self.clock.wrapping_add(sin::get_delta_p(frequency));
+        // let amt = TARGET_SAMPLE_RATE as f32 / frequency;
 
-        self.clock += 1.0;
-        if self.clock > amt {
-            self.clock -= amt
-        }
+        // self.clock += 1.0;
+        // if self.clock > amt {
+        //     self.clock -= amt
+        // }
 
-        definition.waveform.func(self.clock, frequency, modulation) * self.envelope.attenuation()
+        definition.waveform.func(self.clock, modulation) * self.envelope.attenuation()
     }
 
     fn detune_as_multiplier(&self) -> f32 {

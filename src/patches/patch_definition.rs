@@ -28,7 +28,7 @@ impl PatchDefinition {
                 target.write(OperatorInstance {
                     definition: source.clone(),
                     envelope: EnvelopeInstance::new(source.read().envelope.clone()),
-                    clock: 0.0,
+                    clock: 0,
                 });
             });
 

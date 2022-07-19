@@ -58,7 +58,7 @@ impl PatchInstance {
     }
 
     fn func(&mut self) -> f32 {
-        let mut outputs = [0.0f32; 4];
+        let mut outputs = [0.0_f32; 4];
         let mut final_output = 0.0f32;
 
         let definition = self.definition.read();
@@ -101,7 +101,9 @@ impl PatchInstance {
             }
         });
 
-        final_output / AMPLIFICATION
+        let out = final_output / AMPLIFICATION;
+        //println!("out: {}", out);
+        out
     }
 
     //TODO: Potentially add left/right scaling here?

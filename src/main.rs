@@ -3,6 +3,7 @@ mod notes;
 mod patches;
 mod sequencer;
 mod waveform;
+mod sin;
 
 use std::{collections::VecDeque, sync::Arc};
 
@@ -46,6 +47,7 @@ const HEIGHT: u32 = 900;
 fn main() {
     notes::generate();
     patches::init_attenuation_table();
+    sin::init_sin_lut();
 
     let host = cpal::default_host();
     let device = host

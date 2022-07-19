@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use crate::sin;
+
 const START_OCTAVE: usize = 4;
 const START_NAME: usize = 9;
 const NAMES: [&str; 12] = [
@@ -44,9 +46,10 @@ pub fn generate() {
 
     while octave != HIGHEST_OCTAVE || note_name != HIGHEST_NOTE {
         let next_frequency = ROOT_NOTE_FREQ * a.powi(note_delta);
+        let delta_p = sin::get_delta_p(next_frequency as f32);
         println!(
-            "appending: {}{}: {}",
-            NAMES[note_name], octave, next_frequency
+            "appending: {}{}: {}, delta_p: {}",
+            NAMES[note_name], octave, next_frequency, delta_p
         );
 
         notes.push_back(NoteEntry {
@@ -70,9 +73,10 @@ pub fn generate() {
 
     while octave != LOWEST_OCTAVE || note_name != LOWEST_NOTE {
         let next_frequency = ROOT_NOTE_FREQ * a.powi(note_delta);
+        let delta_p = sin::get_delta_p(next_frequency as f32);
         println!(
-            "inserting: {}{}: {}",
-            NAMES[note_name], octave, next_frequency
+            "inserting: {}{}: {}, delta_p: {}",
+            NAMES[note_name], octave, next_frequency, delta_p,
         );
         notes.push_front(NoteEntry {
             name: note_name,

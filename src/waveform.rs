@@ -1,6 +1,6 @@
 use std::f32::consts::{FRAC_PI_2, PI, TAU};
 
-use crate::TARGET_SAMPLE_RATE;
+use crate::{TARGET_SAMPLE_RATE, sin, patches::AMPLIFICATION};
 
 //TODO: Build a lookup table instead of Sin each thing?
 //TODO: Build a lookup of self.frequency * 2.0 * pi?
@@ -113,29 +113,33 @@ impl Waveform {
         Self::LogarithmicSaw
     }
 
-    pub fn func(self, clock: f32, frequency: f32, modulation: f32) -> f32 {
-        let value = clock * frequency * TAU / TARGET_SAMPLE_RATE as f32;
-        let value = value + modulation;
-        match self {
-            Self::Sine => value.sin(),
-            Self::Pulse(duty) => pulse(value, duty),
-            Self::Square => square(value),
-            Self::Saw => ((value % TAU) / PI) - 1.0,
-            Self::Triangle => value.sin().asin() / FRAC_PI_2,
-            //Self::Noise => fastrand::f32(),
-            Self::HalfSine => half_sine(value),
-            Self::AbsoluteSine => value.sin().abs(),
-            Self::QuarterSine => quarter_sine(value),
-            Self::AlternatingSine => alternating_sine(value),
-            Self::CamelSine => camel_sine(value),
-            Self::LogarithmicSaw => logarithmic_saw(value),
-            Self::InvertedSine => inverted_sine(value),
-            Self::InvertedHalfSine => inverted_half_sine(value),
-            Self::InvertedAlternatingSine => inverted_alternating_sine(value),
-            Self::InvertedCamelSine => inverted_camel_sine(value),
-            //Self::PitchedNoise(state) => todo!(),
-        }
+    pub fn func(self, phase: u32, modulation: f32) -> f32 {
+        sin::lookup(phase, modulation)
     }
+
+    // pub fn func(self, clock: f32, frequency: f32, modulation: f32) -> f32 {
+    //     let value = clock * frequency * TAU / TARGET_SAMPLE_RATE as f32;
+    //     let value = value + modulation;
+    //     match self {
+    //         Self::Sine => value.sin(),
+    //         Self::Pulse(duty) => pulse(value, duty),
+    //         Self::Square => square(value),
+    //         Self::Saw => ((value % TAU) / PI) - 1.0,
+    //         Self::Triangle => value.sin().asin() / FRAC_PI_2,
+    //         //Self::Noise => fastrand::f32(),
+    //         Self::HalfSine => half_sine(value),
+    //         Self::AbsoluteSine => value.sin().abs(),
+    //         Self::QuarterSine => quarter_sine(value),
+    //         Self::AlternatingSine => alternating_sine(value),
+    //         Self::CamelSine => camel_sine(value),
+    //         Self::LogarithmicSaw => logarithmic_saw(value),
+    //         Self::InvertedSine => inverted_sine(value),
+    //         Self::InvertedHalfSine => inverted_half_sine(value),
+    //         Self::InvertedAlternatingSine => inverted_alternating_sine(value),
+    //         Self::InvertedCamelSine => inverted_camel_sine(value),
+    //         //Self::PitchedNoise(state) => todo!(),
+    //     }
+    // }
 }
 
 fn pulse(value: f32, duty: f32) -> f32 {
